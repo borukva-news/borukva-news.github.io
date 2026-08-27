@@ -9,7 +9,7 @@
 //
 // Env vars (see .env.example):
 //   GITHUB_TOKEN   - GitHub personal access token with repo contents access
-//   GITHUB_OWNER   - GitHub username/org that owns the data repo (default: PsProfi)
+//   GITHUB_OWNER   - GitHub username/org that owns the data repo (default: borukva-news)
 //   GITHUB_REPO    - Repo that stores the hotspot JSON files   (default: news-data)
 //   PORT           - HTTP port to listen on (default: 3000)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ const fetch = require('node-fetch');
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-const GITHUB_OWNER = process.env.GITHUB_OWNER || 'PsProfi';
+const GITHUB_OWNER = process.env.GITHUB_OWNER || 'borukva-news';
 const GITHUB_REPO = process.env.GITHUB_REPO || 'news-data';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 
@@ -50,13 +50,21 @@ function ghHeaders() {
   };
 }
 
+function githubContentsUrl(file) {
+  const encodedPath = file
+    .split('/')
+    .map((part) => encodeURIComponent(part))
+    .join('/');
+  return `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodedPath}`;
+}
+
 app.get('/api/hotspots/:file', async (req, res) => {
   const { file } = req.params;
   if (!GITHUB_TOKEN) {
     return res.status(500).json({ error: 'GITHUB_TOKEN is not configured on the server' });
   }
   try {
-    const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodeURIComponent(file)}`;
+    const apiUrl = githubContentsUrl(file);
     const ghResp = await fetch(apiUrl, { headers: ghHeaders() });
     const body = await ghResp.text();
     res.status(ghResp.status).type('application/json').send(body);
@@ -72,7 +80,7 @@ app.put('/api/hotspots/:file', async (req, res) => {
     return res.status(500).json({ error: 'GITHUB_TOKEN is not configured on the server' });
   }
   try {
-    const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodeURIComponent(file)}`;
+    const apiUrl = githubContentsUrl(file);
     const payload = { ...req.body };
     if (!payload.message) payload.message = `update ${file}`;
     const ghResp = await fetch(apiUrl, {
@@ -81,6 +89,7 @@ app.put('/api/hotspots/:file', async (req, res) => {
       body: JSON.stringify(payload),
     });
     const body = await ghResp.text();
+    if (!ghResp.ok) console.error(`[hotspots PUT] GitHub ${ghResp.status}: ${body}`);
     res.status(ghResp.status).type('application/json').send(body);
   } catch (err) {
     console.error('[hotspots PUT] error:', err);
