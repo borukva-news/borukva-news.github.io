@@ -113,7 +113,7 @@ app.use((req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Borukva News server running at http://localhost:${PORT}`);
+  console.log(`Borukva News server running at  https://borukva-news-github-io.onrender.com:${PORT}`);
   if (!GITHUB_TOKEN) {
     console.warn('⚠️  GITHUB_TOKEN not set — hotspot save/load will not work until configured in .env');
   }
