@@ -67,12 +67,13 @@ export function CarouselScreen({ title = 'Borukva News', pages, hotspotFile, bgA
   useEffect(() => {
     function onKey(e) {
       if (fullscreen) return;
+      if (devMode) return;
       if (e.key === 'ArrowLeft' && hasPrev) setIndex((i) => i - 1);
       if (e.key === 'ArrowRight' && hasNext) setIndex((i) => i + 1);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [hasPrev, hasNext, fullscreen]);
+  }, [hasPrev, hasNext, fullscreen, devMode]);
 
   return (
     <div className="carousel-screen">
@@ -129,19 +130,17 @@ export function CarouselScreen({ title = 'Borukva News', pages, hotspotFile, bgA
           </div>
         </div>
 
-        {!devMode && (
-          <div className="carousel-pager">
-            <button className="pager-btn" disabled={!hasPrev} onClick={() => setIndex((i) => i - 1)}>
-              &lt;
-            </button>
-            <span className="pager-count">
-              {index + 1} / {pages.length}
-            </span>
-            <button className="pager-btn" disabled={!hasNext} onClick={() => setIndex((i) => i + 1)}>
-              &gt;
-            </button>
-          </div>
-        )}
+        <div className="carousel-pager">
+          <button className="pager-btn" disabled={!hasPrev} onClick={() => setIndex((i) => i - 1)}>
+            &lt;
+          </button>
+          <span className="pager-count">
+            {index + 1} / {pages.length}
+          </span>
+          <button className="pager-btn" disabled={!hasNext} onClick={() => setIndex((i) => i + 1)}>
+            &gt;
+          </button>
+        </div>
       </main>
 
       {toast && <div className="dev-toast">{toast}</div>}
@@ -152,6 +151,8 @@ export function CarouselScreen({ title = 'Borukva News', pages, hotspotFile, bgA
           initialIndex={index}
           hotspots={hotspots}
           imageSizes={imageSizes}
+          devMode={devMode}
+          onHotspotsChange={(pageIndex, updated) => updatePage(pageIndex, updated)}
           onClose={(i) => {
             setIndex(i);
             setFullscreen(false);

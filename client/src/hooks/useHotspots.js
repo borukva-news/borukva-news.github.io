@@ -22,6 +22,8 @@ export function useHotspots(hotspotFile, pageCount) {
   const [hotspots, setHotspots] = useState(() => Array.from({ length: pageCount }, () => []));
   const [loaded, setLoaded] = useState(false);
   const shaRef = useRef(null);
+  const pendingSaveRef = useRef(null);
+  const savingRef = useRef(false);
   const cacheKey = `hotspots_cache:${hotspotFile}`;
 
   useEffect(() => {
@@ -60,31 +62,46 @@ export function useHotspots(hotspotFile, pageCount) {
   }, [hotspotFile, pageCount]);
 
   const save = useCallback(
-    async (updated) => {
+    (updated) => {
       const raw = encode(updated);
       localStorage.setItem(cacheKey, raw);
-      try {
-        if (!shaRef.current) {
-          const resp = await fetch(`/api/hotspots/${encodeURIComponent(hotspotFile)}`);
-          if (resp.ok) {
-            const decoded = await resp.json();
-            shaRef.current = decoded.sha || null;
+      pendingSaveRef.current = raw;
+      if (savingRef.current) return;
+
+      savingRef.current = true;
+      void (async () => {
+        try {
+          while (pendingSaveRef.current) {
+            const nextRaw = pendingSaveRef.current;
+            pendingSaveRef.current = null;
+            if (!shaRef.current) {
+              const getResp = await fetch(`/api/hotspots/${encodeURIComponent(hotspotFile)}`);
+              if (getResp.ok) {
+                const decoded = await getResp.json();
+                shaRef.current = decoded.sha || null;
+              }
+            }
+            if (!shaRef.current) continue;
+            const b64 = btoa(unescape(encodeURIComponent(nextRaw)));
+            const putResp = await fetch(`/api/hotspots/${encodeURIComponent(hotspotFile)}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: b64, sha: shaRef.current }),
+            });
+            if (putResp.ok) {
+              const result = await putResp.json();
+              shaRef.current = result?.content?.sha || shaRef.current;
+            } else {
+              const details = await putResp.text();
+              console.warn(`[hotspots] PUT failed with status ${putResp.status}: ${details}`);
+            }
           }
+        } catch (e) {
+          console.warn('[hotspots] save to GitHub failed, kept in local cache only', e);
+        } finally {
+          savingRef.current = false;
         }
-        if (!shaRef.current) return;
-        const b64 = btoa(unescape(encodeURIComponent(raw)));
-        const resp = await fetch(`/api/hotspots/${encodeURIComponent(hotspotFile)}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: b64, sha: shaRef.current }),
-        });
-        if (resp.ok) {
-          const result = await resp.json();
-          shaRef.current = result?.content?.sha || shaRef.current;
-        }
-      } catch (e) {
-        console.warn('[hotspots] save to GitHub failed, kept in local cache only', e);
-      }
+      })();
     },
     [hotspotFile, cacheKey]
   );

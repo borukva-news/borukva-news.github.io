@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // Ports `imageRect()` from hotspot_shared.dart — computes the letterboxed
 // rect of an `object-fit: contain` image inside its container.
@@ -71,8 +71,15 @@ export function HotspotDevLayer({ hotspots, imageSize, onChange }) {
   const containerRef = useRef(null);
   const [setNode, rect] = useContainerRect(containerRef);
   const dragState = useRef(null);
+  const didDrag = useRef(false);
+  const hotspotsRef = useRef(hotspots);
+  const [newSpot, setNewSpot] = useState(null);
+  const [newUrl, setNewUrl] = useState('https://');
 
   const img = rect.width && imageSize?.width ? imageRect(rect, imageSize) : null;
+  const imageRectRef = useRef(img);
+  hotspotsRef.current = hotspots;
+  imageRectRef.current = img;
 
   function clamp(spot) {
     spot.width = Math.min(Math.max(spot.width, 0.04), 1);
@@ -87,7 +94,7 @@ export function HotspotDevLayer({ hotspots, imageSize, onChange }) {
   }
 
   function handleBackgroundClick(e) {
-    if (!img || dragState.current) return;
+    if (!img || didDrag.current || e.target.closest('.hotspot-dev-box')) return;
     const containerBox = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - containerBox.left;
     const y = e.clientY - containerBox.top;
@@ -96,39 +103,47 @@ export function HotspotDevLayer({ hotspots, imageSize, onChange }) {
     if (fx < 0 || fx > 1 || fy < 0 || fy > 1) return;
     const hit = hotspots.some((s) => fx >= s.left && fx <= s.left + s.width && fy >= s.top && fy <= s.top + s.height);
     if (hit) return;
-    const url = window.prompt('URL нового хотспоту:', 'https://');
-    if (!url) return;
+    setNewUrl('https://');
+    setNewSpot({ left: fx, top: fy });
+  }
+
+  function addSpot() {
+    const url = newUrl.trim();
+    if (!newSpot || !url || url === 'https://') return;
     const next = [
       ...hotspots,
       clamp({
-        left: Math.min(Math.max(fx - 0.15, 0), 0.7),
-        top: Math.min(Math.max(fy - 0.07, 0), 0.86),
+        left: Math.min(Math.max(newSpot.left - 0.15, 0), 0.7),
+        top: Math.min(Math.max(newSpot.top - 0.07, 0), 0.86),
         width: 0.3,
         height: 0.14,
         url,
       }),
     ];
     emit(next);
+    setNewSpot(null);
   }
 
   function startDrag(index, mode, handle) {
     return (e) => {
+      if (e.target.closest('button')) return;
       e.stopPropagation();
       e.preventDefault();
-      dragState.current = { index, mode, handle, startX: e.clientX, startY: e.clientY };
-      window.addEventListener('mousemove', onDragMove);
-      window.addEventListener('mouseup', onDragEnd);
+      didDrag.current = true;
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      dragState.current = { index, mode, handle, pointerId: e.pointerId, startX: e.clientX, startY: e.clientY };
     };
   }
 
   function onDragMove(e) {
     const st = dragState.current;
-    if (!st || !img) return;
-    const dx = (e.clientX - st.startX) / img.width;
-    const dy = (e.clientY - st.startY) / img.height;
+    const currentImg = imageRectRef.current;
+    if (!st || !currentImg || st.pointerId !== e.pointerId) return;
+    const dx = (e.clientX - st.startX) / currentImg.width;
+    const dy = (e.clientY - st.startY) / currentImg.height;
     st.startX = e.clientX;
     st.startY = e.clientY;
-    const next = hotspots.map((s) => ({ ...s }));
+    const next = hotspotsRef.current.map((s) => ({ ...s }));
     const s = next[st.index];
     if (st.mode === 'move') {
       s.left += dx;
@@ -158,9 +173,21 @@ export function HotspotDevLayer({ hotspots, imageSize, onChange }) {
 
   function onDragEnd() {
     dragState.current = null;
-    window.removeEventListener('mousemove', onDragMove);
-    window.removeEventListener('mouseup', onDragEnd);
+    requestAnimationFrame(() => {
+      didDrag.current = false;
+    });
   }
+
+  useEffect(() => {
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
+    return () => {
+      window.removeEventListener('pointermove', onDragMove);
+      window.removeEventListener('pointerup', onDragEnd);
+      window.removeEventListener('pointercancel', onDragEnd);
+    };
+  });
 
   function editUrl(index) {
     const url = window.prompt('URL хотспоту:', hotspots[index].url);
@@ -174,7 +201,16 @@ export function HotspotDevLayer({ hotspots, imageSize, onChange }) {
   }
 
   return (
-    <div ref={setNode} className="hotspot-dev-layer" onClick={handleBackgroundClick}>
+    <>
+      <div
+        ref={setNode}
+        className="hotspot-dev-layer"
+        onClick={handleBackgroundClick}
+        onPointerDown={(e) => {
+          if (e.target === e.currentTarget) didDrag.current = false;
+          e.stopPropagation();
+        }}
+      >
       {img &&
         hotspots.map((s, i) => {
           const l = img.left + s.left * img.width;
@@ -182,24 +218,71 @@ export function HotspotDevLayer({ hotspots, imageSize, onChange }) {
           const w = s.width * img.width;
           const h = s.height * img.height;
           return (
-            <div key={i} className="hotspot-dev-box" style={{ left: l, top: t, width: w, height: h }} onMouseDown={startDrag(i, 'move')}>
+            <div key={i} className="hotspot-dev-box" style={{ left: l, top: t, width: w, height: h }} onPointerDown={startDrag(i, 'move')}>
               <span className="hotspot-dev-url">{s.url}</span>
-              <button className="hotspot-dev-edit" onClick={() => editUrl(i)} title="Редагувати URL">
+              <button
+                className="hotspot-dev-edit"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  editUrl(i);
+                }}
+                title="Редагувати URL"
+              >
                 ✎
               </button>
-              <button className="hotspot-dev-remove" onClick={() => removeSpot(i)} title="Видалити">
+              <button
+                className="hotspot-dev-remove"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeSpot(i);
+                }}
+                title="Видалити"
+              >
                 ✕
               </button>
               {['tl', 'tr', 'bl', 'br'].map((handle) => (
                 <span
                   key={handle}
                   className={`hotspot-dev-handle handle-${handle}`}
-                  onMouseDown={startDrag(i, 'resize', handle)}
+                  onPointerDown={startDrag(i, 'resize', handle)}
                 />
               ))}
             </div>
           );
         })}
-    </div>
+      </div>
+
+      {newSpot && (
+        <div className="hotspot-dialog-backdrop" onMouseDown={() => setNewSpot(null)}>
+          <form
+            className="hotspot-dialog"
+            onSubmit={(e) => {
+              e.preventDefault();
+              addSpot();
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <h2>Новий hotspot</h2>
+            <label htmlFor="new-hotspot-url">Посилання</label>
+            <input
+              id="new-hotspot-url"
+              type="url"
+              value={newUrl}
+              onChange={(e) => setNewUrl(e.target.value)}
+              autoFocus
+              placeholder="https://example.com"
+            />
+            <div className="hotspot-dialog-actions">
+              <button type="button" onClick={() => setNewSpot(null)}>
+                Скасувати
+              </button>
+              <button type="submit" disabled={!newUrl.trim() || newUrl.trim() === 'https://'}>
+                Додати
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </>
   );
 }

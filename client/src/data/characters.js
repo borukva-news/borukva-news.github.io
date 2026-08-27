@@ -3,6 +3,7 @@ import fransysDikiyModelSource from '../../../assets/models/model fransysdikiy.b
 import dornaneskoModelSource from '../../../assets/models/model dornanesko.bbmodel?raw'; 
 import mihaModelSource from '../../../assets/models/model miha.bbmodel?raw';
 import maliyoModelSource from '../../../assets/models/model maliyo.bbmodel?raw';
+import maliyo2ModelSource from '../../../assets/models/model maliyo2.bbmodel?raw';
 
 function buildEmbeddedOverrides(model) {
   const overrides = {};
@@ -20,6 +21,7 @@ const fransysDikiyModel = JSON.parse(fransysDikiyModelSource);
 const dornaneskoModel = JSON.parse(dornaneskoModelSource);
 const mihaModel = JSON.parse(mihaModelSource);
 const maliyoModel = JSON.parse(maliyoModelSource);
+const maliyo2Model = JSON.parse(maliyo2ModelSource);
 
 export function sortCharacters(characters, sortOrder) {
   return [...characters].sort((left, right) => {
@@ -123,7 +125,7 @@ export const CHARACTERS = [
     avatarPath: '/assets/skins/maliyo.png',
     rarity: 'Недоторканий (ютубер)',
     tags: ['компанія:ВМВ', 'відзначився:ЮТУБЕР', 'сезон:Сезон: 6', 'сезон:Сезон: 67'],
-    animationFile: 'model maliyo.bbmodel',
+    animationFile: 'model maliyo2.bbmodel',
     model: maliyoModel,
     skins: [
       {

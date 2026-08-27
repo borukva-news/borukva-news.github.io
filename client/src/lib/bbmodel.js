@@ -280,31 +280,58 @@ function captureBasePose(bone) {
 // Composition: boneWorld ∘ T(cube.origin − bone.origin) ∘ R(cube.rotation) ∘ T(center − cube.origin)
 // — exactly how Blockbench renders a rotated cube inside a rotated bone.
 function attachElement(el, host, hostOrigin, ctx) {
-  const mesh = buildElementMesh(el, ctx.resolution, ctx.model, ctx.overridesByKey, ctx.textureKeyToTexture, ctx.wireframe);
-  const pivotOrigin = el.origin || cubeCenter(el);
-  const rotation = el.rotation || [0, 0, 0];
-  const sharesHostOrigin = pivotOrigin.every((value, index) => value === hostOrigin[index]);
-  const hasRotation = rotation.some((value) => value !== 0);
+    const mesh = buildElementMesh(
+        el,
+        ctx.resolution,
+        ctx.model,
+        ctx.overridesByKey,
+        ctx.textureKeyToTexture,
+        ctx.wireframe
+    );
 
-  if (el.type === 'mesh' && sharesHostOrigin && !hasRotation) {
-    host.add(mesh);
-    ctx.elementMeshes[el.uuid] = mesh;
-    return;
-  }
+    const pivotOrigin = el.origin || cubeCenter(el);
+    const rotation = el.rotation || [0, 0, 0];
 
-  const pivot = new THREE.Group();
-  pivot.name = (el.name || 'element') + '_pivot';
-  pivot.position.set(
-    (pivotOrigin[0] - hostOrigin[0]) * UNIT,
-    (pivotOrigin[1] - hostOrigin[1]) * UNIT,
-    (pivotOrigin[2] - hostOrigin[2]) * UNIT
-  );
-  pivot.quaternion.setFromEuler(eulerFromDegrees(el.rotation || [0, 0, 0]));
-  pivot.add(mesh);
-  host.add(pivot);
+    const pivot = new THREE.Group();
+    pivot.name = (el.name || 'element') + '_pivot';
+
+    // Позиція pivot відносно кістки
+    pivot.position.set(
+        (pivotOrigin[0] - hostOrigin[0]) * UNIT,
+        (pivotOrigin[1] - hostOrigin[1]) * UNIT,
+        (pivotOrigin[2] - hostOrigin[2]) * UNIT
+    );
+
+    // Власний rotation елемента
+    pivot.quaternion.setFromEuler(
+        eulerFromDegrees(rotation)
+    );
+
+    // Геометрія відносно власного pivot
+    const center = cubeCenter(el);
+
+    mesh.position.set(
+        (center[0] - pivotOrigin[0]) * UNIT,
+        (center[1] - pivotOrigin[1]) * UNIT,
+        (center[2] - pivotOrigin[2]) * UNIT
+    );
+
+    pivot.add(mesh);
+
+    // ВАЖЛИВО:
+    // додаємо pivot саме до відповідної кістки
+    host.add(pivot);
+
   ctx.elementMeshes[el.uuid] = mesh;
+  console.log(
+    'ATTACH:',
+    el.name,
+    '→',
+    host.name,
+    'hostOrigin:',
+    hostOrigin
+);
 }
-
 // A bare element sitting directly in the outliner (no parent group). It acts
 // as its own little bone so it can still be animated and hit-tested.
 function addElementAsBone(el, parent, parentOrigin, ctx) {
@@ -446,6 +473,22 @@ export function parseBBModel(json, overrides, { wireframe = false } = {}) {
     })),
   }));
 
+  // Debug: log group information
+  const groupNames = ['group', 'group2', 'group3'];
+  groupNames.forEach(name => {
+    const bone = bonesByKey[name];
+    if (bone) {
+      console.log(`✓ Found bone '${name}':`, {
+        position: bone.position,
+        scale: bone.scale,
+        hasBasePosition: !!bone.userData?.basePosition,
+        baseScale: bone.userData?.baseScale,
+      });
+    } else {
+      console.warn(`✗ Bone '${name}' NOT found in bonesByKey`);
+    }
+  });
+
   return { root, bonesByKey, elementMeshes, animations, textures: json.textures || [] };
 }
 
@@ -494,9 +537,24 @@ const _animQuat = new THREE.Quaternion();
 
 export function applyAnimationFrame(model, animation, t) {
   if (!model || !animation) return;
+  
+  // Debug: log animation application for groups
+  const debugGroups = ['group', 'group2', 'group3'];
+  let groupsAnimatedCount = 0;
+  
   animation.animators.forEach((animator) => {
     const bone = model.bonesByKey[animator.key] || model.bonesByKey[animator.name];
     if (!bone || !bone.userData || !bone.userData.basePosition) return;
+    
+    // Count group animations
+    if (debugGroups.includes(animator.name)) {
+      groupsAnimatedCount++;
+      const scl = sampleChannel(animator.keyframes, 'scale', t);
+      if (scl) {
+        console.debug(`Animation '${animation.name}' @ t=${t.toFixed(2)}: ${animator.name} scale=`, scl);
+      }
+    }
+    
     const base = bone.userData;
 
     // ROTATION — arms use Blockbench's fixed-axis animation order and replace

@@ -163,6 +163,15 @@ export function ModelViewport({
     if (s.model) s.rig.remove(s.model.root);
     const model = parseBBModel(bbmodel, textureOverrides, { wireframe });
 
+    // Debug: check if groups are properly in bonesByKey
+    console.log('Parsed model bonesByKey keys:', Object.keys(model.bonesByKey).filter(k => k.includes('group')));
+    console.log('Model animations:', model.animations.map(a => a.name));
+    if (model.bonesByKey.group) {
+      console.log('group bone visible:', model.bonesByKey.group.visible);
+      console.log('group bone scale:', model.bonesByKey.group.scale);
+      console.log('group bone children:', model.bonesByKey.group.children.length);
+    }
+
     const box = new THREE.Box3().setFromObject(model.root);
     const center = new THREE.Vector3();
     const height = box.max.y - box.min.y;

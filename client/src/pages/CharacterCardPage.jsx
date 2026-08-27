@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCw, Pause, Play } from 'lucide-react';
 import { ModelViewport } from '../components/ModelViewport';
 import { BG_BLUE_ASSET } from '../data/issues';
 import { CHARACTERS, sortCharacters } from '../data/characters';

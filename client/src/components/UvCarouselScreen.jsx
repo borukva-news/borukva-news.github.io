@@ -137,13 +137,21 @@ export function UvCarouselScreen({ title = 'Borukva News', pages, hotspotFile, b
   const navigate = useNavigate();
   const [index, setIndex] = useState(0);
   const [devMode, setDevMode] = useState(false);
+  const [toast, setToast] = useState(null);
   const [uvActive, setUvActive] = useState(false);
   const [uvRadius, setUvRadius] = useState(100);
   const [fullscreen, setFullscreen] = useState(false);
   const { hotspots, loaded, updatePage } = useHotspots(hotspotFile, pages.length);
   const [imageSizes, setImageSizes] = useState(() => pages.map(() => null));
 
-  useDevModeCombo(() => setDevMode((v) => !v));
+  useDevModeCombo(() => {
+    setDevMode((v) => {
+      const next = !v;
+      setToast(next ? '🛠 Developer mode ON' : '🔒 Developer mode OFF');
+      setTimeout(() => setToast(null), 2000);
+      return next;
+    });
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -221,7 +229,21 @@ export function UvCarouselScreen({ title = 'Borukva News', pages, hotspotFile, b
             </button>
           </div>
 
+          {devMode && (
+            <div className="dev-hint">Клік по вільному місцю — новий хотспот · перетягуй — рухай · кутики — розмір</div>
+          )}
+
           <div className="carousel-controls-top">
+            {devMode && (
+              <>
+                <OutlinedIconBtn color="#111" disabled={!hasPrev} onClick={() => setIndex((i) => i - 1)}>
+                  ‹
+                </OutlinedIconBtn>
+                <OutlinedIconBtn color="#111" disabled={!hasNext} onClick={() => setIndex((i) => i + 1)}>
+                  ›
+                </OutlinedIconBtn>
+              </>
+            )}
             <OutlinedIconBtn color="#111" onClick={() => setFullscreen(true)} title="На весь екран">
               ⛶
             </OutlinedIconBtn>
@@ -240,6 +262,8 @@ export function UvCarouselScreen({ title = 'Borukva News', pages, hotspotFile, b
           </button>
         </div>
       </main>
+
+      {toast && <div className="dev-toast">{toast}</div>}
 
       {fullscreen && (
         <FullScreenViewer
