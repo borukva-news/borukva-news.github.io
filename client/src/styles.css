@@ -1,14 +1,14 @@
 @font-face {
   font-family: 'Tapestry';
-  src: url('/assets/fonts/Tapestry-Regular.ttf') format('truetype');
+  src: url('./assets/fonts/Tapestry-Regular.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Minecraft';
-  src: url('/assets/fonts/Minecraft_1.1.ttf') format('truetype');
+  src: url('./assets/fonts/Minecraft_1.1.ttf') format('truetype');
 }
 @font-face {
   font-family: 'SparklingValentine';
-  src: url('/assets/fonts/Sparkling Valentine.ttf') format('truetype');
+  src: url('./assets/fonts/Sparkling Valentine.ttf') format('truetype');
 }
 
 * {

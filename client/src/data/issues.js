@@ -5,7 +5,16 @@
 // hotspotFile: name of the JSON file in the news-data GitHub repo for this issue
 // ─────────────────────────────────────────────────────────────────────────────
 
-const img = (p) => ({ type: 'image', src: `/assets/pictures/${p}` });
+export function assetUrl(p) {
+  if (!p) return '';
+  if (/^https?:\/\//i.test(p) || p.startsWith('data:')) return p;
+  const base = import.meta.env.BASE_URL || '/';
+  const cleanBase = base.endsWith('/') ? base : `${base}/`;
+  const cleanPath = p.startsWith('/') ? p.slice(1) : p;
+  return `${cleanBase}${cleanPath}`;
+}
+
+const img = (p) => ({ type: 'image', src: assetUrl(`assets/pictures/${p}`) });
 const youtube = (id) => ({ type: 'youtube', videoId: id });
 
 export const ISSUES = {

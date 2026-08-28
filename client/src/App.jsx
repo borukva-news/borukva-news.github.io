@@ -11,7 +11,7 @@ import './styles.css';
 // Ports the GoRouter route table from lib/main.dart 1:1.
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route path="/" element={<NewsHomePage />} />
         <Route path="/RULE34" element={<MainScreen />} />

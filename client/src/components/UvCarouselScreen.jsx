@@ -282,5 +282,3 @@ export function UvCarouselScreen({ title = 'Borukva News', pages, hotspotFile, b
     </div>
   );
 }
-
-import { FullScreenViewer } from './FullScreenViewer'; // place with your other imports at top

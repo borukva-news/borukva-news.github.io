@@ -1,9 +1,9 @@
-import psProfiModelSource from '../../../assets/models/model psprofi.bbmodel?raw';
-import fransysDikiyModelSource from '../../../assets/models/model fransysdikiy.bbmodel?raw';
-import dornaneskoModelSource from '../../../assets/models/model dornanesko.bbmodel?raw'; 
-import mihaModelSource from '../../../assets/models/model miha.bbmodel?raw';
-import maliyoModelSource from '../../../assets/models/model maliyo.bbmodel?raw';
-import maliyo2ModelSource from '../../../assets/models/model maliyo2.bbmodel?raw';
+import psProfiModelSource from '../../public/assets/models/model psprofi.bbmodel?raw';
+import fransysDikiyModelSource from '../../public/assets/models/model fransysdikiy.bbmodel?raw';
+import dornaneskoModelSource from '../../public/assets/models/model dornanesko.bbmodel?raw'; 
+import mihaModelSource from '../../public/assets/models/model miha.bbmodel?raw';
+import maliyoModelSource from '../../public/assets/models/model maliyo.bbmodel?raw';
+import maliyo2ModelSource from '../../public/assets/models/model maliyo2.bbmodel?raw';
 
 function buildEmbeddedOverrides(model) {
   const overrides = {};
@@ -132,6 +132,11 @@ export const CHARACTERS = [
         id: 'original',
         name: 'Оригінал',
         overrides: buildEmbeddedOverrides(maliyoModel),
+      },
+      {
+        id: 'v2',
+        name: 'Варіант 2',
+        overrides: buildEmbeddedOverrides(maliyo2Model),
       },
     ],
     characteristics: [

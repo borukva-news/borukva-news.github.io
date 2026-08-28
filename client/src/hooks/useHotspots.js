@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 //  - PUT  /api/hotspots/:file  -> body { content: base64, sha }
 //  - falls back to localStorage cache if the API/GitHub is unreachable
 
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+
 function decode(raw, count) {
   try {
     const outer = JSON.parse(raw);
@@ -31,7 +33,6 @@ export function useHotspots(hotspotFile, pageCount) {
 
     async function load() {
       try {
-        const API_URL = import.meta.env.VITE_API_URL;
         const resp = await fetch(`${API_URL}/api/hotspots/${encodeURIComponent(hotspotFile)}`);
         if (resp.ok) {
           const decoded = await resp.json();
@@ -44,6 +45,9 @@ export function useHotspots(hotspotFile, pageCount) {
             setLoaded(true);
           }
           return;
+        }
+        if (resp.status === 404) {
+          shaRef.current = null;
         }
       } catch (e) {
         console.warn('[hotspots] fetch failed, falling back to cache', e);
@@ -76,18 +80,25 @@ export function useHotspots(hotspotFile, pageCount) {
             const nextRaw = pendingSaveRef.current;
             pendingSaveRef.current = null;
             if (!shaRef.current) {
-              const getResp = await fetch(`/api/hotspots/${encodeURIComponent(hotspotFile)}`);
-              if (getResp.ok) {
-                const decoded = await getResp.json();
-                shaRef.current = decoded.sha || null;
+              try {
+                const getResp = await fetch(`${API_URL}/api/hotspots/${encodeURIComponent(hotspotFile)}`);
+                if (getResp.ok) {
+                  const decoded = await getResp.json();
+                  shaRef.current = decoded.sha || null;
+                }
+              } catch (_) {
+                // Ignore network error if server is unreachable
               }
             }
-            if (!shaRef.current) continue;
             const b64 = btoa(unescape(encodeURIComponent(nextRaw)));
+            const bodyPayload = { content: b64 };
+            if (shaRef.current) {
+              bodyPayload.sha = shaRef.current;
+            }
             const putResp = await fetch(`${API_URL}/api/hotspots/${encodeURIComponent(hotspotFile)}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ content: b64, sha: shaRef.current }),
+              body: JSON.stringify(bodyPayload),
             });
             if (putResp.ok) {
               const result = await putResp.json();
