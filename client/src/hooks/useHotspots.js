@@ -31,7 +31,8 @@ export function useHotspots(hotspotFile, pageCount) {
 
     async function load() {
       try {
-        const resp = await fetch(`/api/hotspots/${encodeURIComponent(hotspotFile)}`);
+        const API_URL = import.meta.env.VITE_API_URL;
+        const resp = await fetch(`${API_URL}/api/hotspots/${encodeURIComponent(hotspotFile)}`);
         if (resp.ok) {
           const decoded = await resp.json();
           shaRef.current = decoded.sha || null;
@@ -83,7 +84,7 @@ export function useHotspots(hotspotFile, pageCount) {
             }
             if (!shaRef.current) continue;
             const b64 = btoa(unescape(encodeURIComponent(nextRaw)));
-            const putResp = await fetch(`/api/hotspots/${encodeURIComponent(hotspotFile)}`, {
+            const putResp = await fetch(`${API_URL}/api/hotspots/${encodeURIComponent(hotspotFile)}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ content: b64, sha: shaRef.current }),

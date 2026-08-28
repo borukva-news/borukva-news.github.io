@@ -6,6 +6,7 @@ import react from '@vitejs/plugin-react'
 // so `npm run dev` in this folder talks to the same backend as production.
 export default defineConfig({
   plugins: [react()],
+  base: '/borukva-news.github.io/',
   server: {
     proxy: {
       '/api': ' https://borukva-news-github-io.onrender.com',
