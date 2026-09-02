@@ -2,51 +2,46 @@
 <html lang="uk">
 
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Borukva News</title>
 
-  <script type="text/javascript">
-    
-    // Single Page Apps for GitHub Pages
-    // https://github.com/rafgraph/spa-github-pages
-
-    var pathSegmentsToKeep = 1;
-
-    var l = window.location;
-
-    l.replace(
-      l.protocol +
-      '//' +
-      l.hostname +
-      (l.port ? ':' + l.port : '') +
-      l.pathname
-        .split('/')
-        .slice(0, 1 + pathSegmentsToKeep)
-        .join('/') +
-      '/?/' +
-      l.pathname
-        .slice(1)
-        .split('/')
-        .slice(pathSegmentsToKeep)
-        .join('/')
-        .replace(/&/g, '~and~') +
-      (l.search
-        ? '&' + l.search.slice(1).replace(/&/g, '~and~')
-        : '') +
-      l.hash
-    );
-  </script>
   <script>
-    window.location.replace('/');
+    (function () {
+      var path = window.location.pathname;
+      var search = window.location.search;
+      var hash = window.location.hash;
+
+      // Якщо це вже головна — нічого не робимо.
+      if (path === '/') {
+        return;
+      }
+
+      // Захист від нескінченного циклу.
+      var redirectKey = 'github-pages-redirect';
+
+      if (sessionStorage.getItem(redirectKey) === path + search + hash) {
+        sessionStorage.removeItem(redirectKey);
+        window.location.replace('/');
+        return;
+      }
+
+      // Запам'ятовуємо URL, щоб index.html міг його відновити.
+      sessionStorage.setItem(
+        redirectKey,
+        path + search + hash
+      );
+
+      // Переходимо на головну.
+      window.location.replace('/');
+    })();
   </script>
-  </head>
-  
-  <body>
-    <p>Переходимо на головну сторінку...</p>
-  </body>
 </head>
 
 <body>
+  <noscript>
+    <p>Будь ласка, увімкніть JavaScript.</p>
+  </noscript>
 </body>
 
 </html>

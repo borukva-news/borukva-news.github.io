@@ -33,13 +33,33 @@
       }
     })(window.location);
   </script>
-  <script type="module" crossorigin src="/assets/index-BFf6Swoj.js"></script>
+  <script type="module" crossorigin src="/assets/index-DZi2ffoE.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/index-CmxjnRnY.css">
 </head>
 
 <body>
   <div id="root"></div>
+<script>
+  (function () {
+    var redirectKey = 'github-pages-redirect';
+    var redirectPath = sessionStorage.getItem(redirectKey);
 
+    if (redirectPath) {
+      sessionStorage.removeItem(redirectKey);
+
+      // Якщо шлях існує — відновлюємо його.
+      // Якщо React Router не знає такого шляху,
+      // його path="*" відкриє NewsHomePage.
+      if (redirectPath !== '/') {
+        window.history.replaceState(
+          null,
+          '',
+          redirectPath
+        );
+      }
+    }
+  })();
+</script>
 </body>
 
 </html>
