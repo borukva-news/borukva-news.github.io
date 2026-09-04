@@ -194,19 +194,24 @@ async function sendMail(to, subject, text) {
       user: Boolean(process.env.SMTP_USER),
       pass: Boolean(process.env.SMTP_PASS),
     });
-    return false;
+    return { sent: false, error: 'not_configured' };
   }
+  console.log('[mail] connecting', { host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: process.env.SMTP_SECURE === 'true', to });
   try {
-    console.log('[mail] connecting', { host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: process.env.SMTP_SECURE === 'true', to });
     await transport.verify();
-    console.log('[mail] SMTP connection verified');
-    await transport.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, subject, text });
-    console.log('[mail] message sent');
-    return true;
   } catch (err) {
-    console.error('[mail] failed:', err.code || 'UNKNOWN', err.message);
-    return false;
+    console.error('[mail] verify failed:', err.code || 'UNKNOWN', err.message);
+    return { sent: false, error: 'verify_failed', code: err.code || 'UNKNOWN' };
   }
+  console.log('[mail] SMTP connection verified');
+  try {
+    await transport.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, subject, text });
+  } catch (err) {
+    console.error('[mail] send failed:', err.code || 'UNKNOWN', err.message);
+    return { sent: false, error: 'send_failed', code: err.code || 'UNKNOWN' };
+  }
+  console.log('[mail] message sent');
+  return { sent: true, error: null };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -348,9 +353,9 @@ app.post('/api/propose-news', async (req, res) => {
     console.log('[propose-news] sending moderation email', { id, to: MODERATOR_EMAIL });
     const approve = `${API_PUBLIC_URL}/api/news/moderate?id=${id}&action=approve&token=${encodeURIComponent(MODERATION_SECRET)}`;
     const reject = `${API_PUBLIC_URL}/api/news/moderate?id=${id}&action=reject&token=${encodeURIComponent(MODERATION_SECRET)}`;
-    const mailSent = await sendMail(MODERATOR_EMAIL, `Нова новина на модерацію: ${title}`, `ID: ${id}\nАвтор: ${authorNick} (${authorEmail})\n\nApprove: ${approve}\nReject: ${reject}`);
-    console.log('[propose-news] completed', { id, mailSent });
-    res.status(201).json({ status: 'draft_created', id, mailSent });
+    const mailResult = await sendMail(MODERATOR_EMAIL, `Нова новина на модерацію: ${title}`, `ID: ${id}\nАвтор: ${authorNick} (${authorEmail})\n\nApprove: ${approve}\nReject: ${reject}`);
+    console.log('[propose-news] completed', { id, mailSent: mailResult.sent, mailError: mailResult.error, mailCode: mailResult.code });
+    res.status(201).json({ status: 'draft_created', id, mailSent: mailResult.sent, mailError: mailResult.error, mailCode: mailResult.code || null });
   } catch (err) {
     console.error('[propose-news] failed', { code: err.code, status: err.status, message: err.message, body: err.body });
     res.status(err.status || 502).json({ error: 'Failed to create news draft' });

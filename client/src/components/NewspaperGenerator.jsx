@@ -305,7 +305,7 @@ export default function NewspaperGenerator() {
       localStorage.setItem(PROFILE_KEY, JSON.stringify({ author: authorNick.trim(), authorEmail: authorEmail.trim() }));
       alert(result.mailSent
         ? `Новину ${result.id} збережено як чернетку та відправлено на модерацію.`
-        : `Новину ${result.id} збережено як чернетку, але лист модератору не надіслано. Перевірте SMTP налаштування на Render.`);
+        : `Новину ${result.id} збережено як чернетку, але лист модератору не надіслано (${result.mailError || 'невідома SMTP помилка'}${result.mailCode ? `, ${result.mailCode}` : ''}).`);
     } catch (err) {
       console.error('[generator] submission failed', {
         stage,
