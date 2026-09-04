@@ -44,6 +44,8 @@ const NEWS_DATA_TOKEN = process.env.NEWS_DATA_GITHUB_TOKEN || process.env.GITHUB
 const MODERATION_SECRET = process.env.MODERATION_SECRET || '';
 const API_PUBLIC_URL = (process.env.API_PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
 const MODERATOR_EMAIL = process.env.MODERATOR_EMAIL || 'borukvanews@gmail.com';
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const RESEND_FROM = process.env.RESEND_FROM || process.env.SMTP_FROM || 'onboarding@resend.dev';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://borukva-news.github.io';
 
@@ -187,6 +189,27 @@ function mailer() {
 }
 
 async function sendMail(to, subject, text) {
+  if (RESEND_API_KEY) {
+    try {
+      console.log('[mail] sending through Resend HTTPS', { to, from: RESEND_FROM });
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: RESEND_FROM, to: [to], subject, text }),
+      });
+      const body = await response.text();
+      if (!response.ok) {
+        console.error('[mail] Resend failed:', response.status, body.slice(0, 500));
+        return { sent: false, error: 'resend_failed', code: `HTTP_${response.status}` };
+      }
+      console.log('[mail] Resend message sent', { response: body.slice(0, 200) });
+      return { sent: true, error: null };
+    } catch (err) {
+      console.error('[mail] Resend request failed:', err.code || 'UNKNOWN', err.message);
+      return { sent: false, error: 'resend_request_failed', code: err.code || 'UNKNOWN' };
+    }
+  }
+
   const transport = mailer();
   if (!transport) {
     console.error('[mail] SMTP is not configured', {
