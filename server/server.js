@@ -172,7 +172,18 @@ function imageUrl(folder, filename) {
 
 function mailer() {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
-  return nodemailer.createTransport({ host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: process.env.SMTP_SECURE === 'true', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } });
+  const port = Number(process.env.SMTP_PORT || 587);
+  const secure = process.env.SMTP_SECURE === 'true';
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST.trim(),
+    port,
+    secure,
+    requireTLS: !secure && port === 587,
+    auth: {
+      user: process.env.SMTP_USER.trim(),
+      pass: process.env.SMTP_PASS.replace(/\s/g, ''),
+    },
+  });
 }
 
 async function sendMail(to, subject, text) {
@@ -182,7 +193,7 @@ async function sendMail(to, subject, text) {
     await transport.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, subject, text });
     return true;
   } catch (err) {
-    console.error('[mail] failed:', err.message);
+    console.error('[mail] failed:', err.code || 'UNKNOWN', err.message);
     return false;
   }
 }
