@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DROPDOWN_MENUS, HOME_CAROUSEL_ITEMS, SERVER_WIKI_URL, BG_MONOCHROME_ASSET } from '../data/issues';
 
+const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://borukva-news-github-io.onrender.com').replace(/\/+$/, '');
+
 function NewBadge() {
   return <span className="new-badge">НОВИЙ</span>;
 }
@@ -148,6 +150,7 @@ function Carousel({ navigate }) {
           </div>
         )}
         {item.isNew && <div className="home-carousel-new-badge">НОВИЙ</div>}
+        {item.isBeta && <div className="home-carousel-beta-badge">BETA</div>}
         {hovered && (
           <div className="home-carousel-open-icon">
             <span>⤢</span>
@@ -168,8 +171,80 @@ function Carousel({ navigate }) {
   );
 }
 
-export function NewsHomePage() {
+function FeedItem({ item, onRefresh }) {
+  const [comment, setComment] = useState({ author: '', text: '' });
+  const [busy, setBusy] = useState(false);
+
+  async function react(type) {
+    setBusy(true);
+    await fetch(`${BACKEND_URL}/api/news/${item.id}/reactions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type }) });
+    setBusy(false);
+    onRefresh();
+  }
+
+  async function submitComment(event) {
+    event.preventDefault();
+    if (!comment.author.trim() || !comment.text.trim()) return;
+    setBusy(true);
+    await fetch(`${BACKEND_URL}/api/news/${item.id}/comments`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(comment) });
+    setComment({ author: '', text: '' });
+    setBusy(false);
+    onRefresh();
+  }
+
+  return (
+    <article className="feed-item" id={item.id}>
+      <div className="feed-item-heading"><h2>{item.title}</h2><span>{item.author}</span></div>
+      <div className="feed-pages">{item.images.map((image, index) => <img key={image} src={image} alt={`${item.title}, сторінка ${index + 1}`} loading="lazy" />)}</div>
+      <div className="feed-actions">
+        <button disabled={busy} onClick={() => react('like')}>👍 {item.likes}</button>
+        <button disabled={busy} onClick={() => react('dislike')}>👎 {item.dislikes}</button>
+        <span>{item.commentsCount} коментарів</span>
+      </div>
+      <div className="feed-comments">{item.comments?.map((entry, index) => <p key={`${entry.createdAt}-${index}`}><strong>{entry.author}:</strong> {entry.text}</p>)}</div>
+      <form className="comment-form" onSubmit={submitComment}>
+        <input aria-label="Ваш нік" placeholder="Ваш нік" value={comment.author} onChange={(e) => setComment({ ...comment, author: e.target.value })} />
+        <input aria-label="Текст коментаря" placeholder="Текст коментаря" value={comment.text} onChange={(e) => setComment({ ...comment, text: e.target.value })} />
+        <button disabled={busy} type="submit">Надіслати</button>
+      </form>
+    </article>
+  );
+}
+
+function FeedPreviewItem({ item, onDetails }) {
+  return (
+    <article className="feed-preview-item">
+      <img src={item.images[0]} alt={`${item.title}, preview`} loading="lazy" />
+      <div className="feed-preview-copy">
+        {item.isBeta && <div className="feed-preview-beta-badge">BETA</div>}
+        <span className="feed-preview-label">LIVE / {item.author}</span>
+        <h2>{item.title}</h2>
+        <p>{item.commentsCount} коментарів · 👍 {item.likes} · 👎 {item.dislikes}</p>
+        <button onClick={onDetails}>Детальніше →</button>
+      </div>
+    </article>
+  );
+}
+
+function SideFeedWidget({ items, onSelect }) {
+  return (
+    <aside className="side-feed-widget" aria-label="Останні новини">
+      <div className="side-feed-tab">Останні</div>
+      <div className="side-feed-content">
+        <h2>Live feed</h2>
+        {items.slice(0, 6).map((item) => <button key={item.id} onClick={() => onSelect(item.id)}><img src={item.images[0]} alt="" /><span>{item.title}</span></button>)}
+        {!items.length && <p>Опублікованих новин поки немає.</p>}
+      </div>
+    </aside>
+  );
+}
+
+export function NewsHomePage({ feedPage = false }) {
   const navigate = useNavigate();
+  const [feed, setFeed] = useState([]);
+
+  const loadFeed = () => fetch(`${BACKEND_URL}/api/news/feed`).then((response) => response.ok ? response.json() : []).then(setFeed).catch(() => setFeed([]));
+  useEffect(() => { loadFeed(); }, []);
 
   return (
     <div className="news-home">
@@ -177,6 +252,10 @@ export function NewsHomePage() {
 
       <header className="news-home-header">
         <div className="news-home-logo">Borukva News</div>
+
+        <button className="publish-news-btn news-home-publish-btn" onClick={() => navigate('/generator')}>
+          Опублікувати новину <span aria-hidden="true">+</span>
+        </button>
 
         <nav className="news-home-nav desktop-only">
           {Object.entries(DROPDOWN_MENUS).map(([category, items]) => (
@@ -194,7 +273,16 @@ export function NewsHomePage() {
       </header>
 
       <main className="news-home-main">
-        <Carousel navigate={navigate} />
+        {!feedPage && <Carousel navigate={navigate} />}
+
+        {feedPage && (
+          <section className="feed-section feed-page-section" id="feed">
+            <div className="feed-section-heading"><span className="section-kicker">BORUKVA / LIVE</span><h1>Повний feed</h1><button onClick={loadFeed}>Оновити</button></div>
+            {feed.map((item) => <FeedItem key={item.id} item={item} onRefresh={loadFeed} />)}
+            {!feed.length && <p className="feed-empty">Стрічка завантажується або ще не має опублікованих випусків.</p>}
+          </section>
+        )}
+        {!feedPage && <SideFeedWidget items={feed} onSelect={() => navigate('/feed')} />}
 
         <div className="news-home-footer">
           <p>Останні новини та оновлення на Борукві</p>

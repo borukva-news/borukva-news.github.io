@@ -125,15 +125,20 @@ function buildMaterial(textureKeyToTexture, key, wireframe) {
   return new THREE.MeshStandardMaterial({
     map: map || null,
     color: map ? 0xffffff : 0x8a97ad,
+    
     roughness: 0.75,
     metalness: 0.05,
+
     transparent: true,
-    alphaTest: map ? 0.1 : 0,
+    alphaTest: 0.1,
+
+    depthTest: true,
+    depthWrite: true,
+
     wireframe,
     side: THREE.FrontSide,
   });
 }
-
 function cubeCenter(el) {
   const f = el.from || [0, 0, 0];
   const t = el.to || f;

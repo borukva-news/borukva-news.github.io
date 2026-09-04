@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
+import './CharacterCardPage.css';
 import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
 import { ModelViewport } from '../components/ModelViewport';
+import ModelViewportMobile from '../components/ModelViewportMobile';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { BG_BLUE_ASSET } from '../data/issues';
 import { CHARACTERS, sortCharacters } from '../data/characters';
 
@@ -15,7 +18,7 @@ const RARITY_CLASS = {
   'Власник': 'rarity-legendary',
   'Меценат': 'rarity-mythic',
   'Божественний': 'rarity-divine',
-  'Таємничий': 'rarity-mysterious',
+  'Адмін': 'rarity-mysterious',
   'Райдужний': 'rarity-rainbow',
 };
 
@@ -33,6 +36,7 @@ function renderInlineText(text, keyPrefix) {
     if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
     if (match[1] !== undefined) {
       parts.push(<a key={`${keyPrefix}-link-${match.index}`} className="feature-link" href={getSafeHref(match[1])}>{renderInlineText(match[2], `${keyPrefix}-link-${match.index}`)}</a>);
+      // як писати лінк = link{https://borukva-news.github.io/borukvanews}[текст лінку]
     } else if (match[3] !== undefined) {
       parts.push(<strong key={`${keyPrefix}-bold-${match.index}`}>{renderInlineText(match[3], `${keyPrefix}-bold-${match.index}`)}</strong>);
     } else if (match[4] !== undefined) {
@@ -64,7 +68,12 @@ function FeatureRow({ text, isFirst }) {
   );
 }
 
-function CharacterCard({ character }) {
+function CharacterCard({  character,
+  index,
+  total,
+  onPrevious,
+  onNext, }) {
+  
   const [animationName, setAnimationName] = useState('idle');
   const [skinId, setSkinId] = useState(character.skins[0]?.id);
   const [autoRotate, setAutoRotate] = useState(false);
@@ -84,19 +93,32 @@ function CharacterCard({ character }) {
     return () => window.clearTimeout(timer);
   }, [animationName, animations]);
 
+  const isMobile = useIsMobile();
+
   return (
     <div className="char-card">
       <div className="card-grid">
         <div className="card-viewport-col">
           <div className="card-viewport">
-            <ModelViewport
-              bbmodel={character.model}
-              textureOverrides={activeSkin.overrides}
-              animationName={animationName}
-              playing
-              autoRotate={autoRotate}
-              onSelectElement={() => setAnimationName('idle')}
-            />
+            {isMobile ? (
+              <ModelViewportMobile
+                bbmodel={character.model}
+                textureOverrides={activeSkin.overrides}
+                animationName={animationName}
+                playing
+                autoRotate={autoRotate}
+                onSelectElement={() => setAnimationName('idle')}
+              />
+            ) : (
+              <ModelViewport
+                bbmodel={character.model}
+                textureOverrides={activeSkin.overrides}
+                animationName={animationName}
+                playing
+                autoRotate={autoRotate}
+                onSelectElement={() => setAnimationName('idle')}
+              />
+            )}
             <div className="viewport-tools">
               <button className={`tool-btn ${autoRotate ? 'active' : ''}`} onClick={() => setAutoRotate((value) => !value)} title="Автообертання"><RotateCw size={16} /></button>
             </div>
@@ -109,6 +131,7 @@ function CharacterCard({ character }) {
             {character.characteristics.map((bullet, bulletIndex) => <FeatureRow key={bullet} text={bullet} isFirst={bulletIndex === 0} />)}
           </div>
         </div>
+        
       </div>
       <div className="skins-panel">
         <p className="skins-panel-title">СКІНИ</p>

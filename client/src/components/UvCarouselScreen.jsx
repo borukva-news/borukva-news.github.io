@@ -6,6 +6,7 @@ import { useHotspots } from '../hooks/useHotspots';
 import { useDevModeCombo } from '../hooks/useDevModeCombo';
 import { BG_ASSET } from '../data/issues';
 
+import { FullScreenViewer } from './FullScreenViewer';
 // Exported so FullScreenViewer can reuse it
 export function UvPage({ page, uvActive, uvRadius, hotspots, devMode, onHotspotsChange, imageSize, zoom = 1 }) {
   const wrapRef = useRef(null);

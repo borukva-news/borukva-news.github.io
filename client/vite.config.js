@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react'
 // so `npm run dev` in this folder talks to the same backend as production.
 export default defineConfig({
   plugins: [react()],
-  base: process.env.VITE_BASE_PATH || '/',
+  base: '/',
   server: {
     proxy: {
       '/api': {

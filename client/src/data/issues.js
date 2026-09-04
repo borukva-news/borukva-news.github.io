@@ -134,27 +134,27 @@ export const UV_ISSUE = {
   pages: [
     {
       ...img('29_03-10_05/Газета 29.03-10.05 Титул.png'),
-      uvOverlay: '/assets/pictures/29_03-10_05/Газета 29.03-10.05 Титул невидимка.png',
+      uvOverlay: assetUrl('assets/pictures/29_03-10_05/Газета 29.03-10.05 Титул невидимка.png'),
     },
     {
       ...img('29_03-10_05/Газета 29.03-10.05 стор. 1.png'),
-      sticky: '/assets/pictures/29_03-10_05/Газета 29.03-10.05 стор. 1 додаток – фінальна.png',
+      sticky: assetUrl('assets/pictures/29_03-10_05/Газета 29.03-10.05 стор. 1 додаток – фінальна.png'),
     },
     {
       ...img('29_03-10_05/Газета 29.03-10.05 стор. 2.png'),
-      uvOverlay: '/assets/pictures/29_03-10_05/Газета 29.03-10.05 стор. 2 невидимка.png',
+      uvOverlay: assetUrl('assets/pictures/29_03-10_05/Газета 29.03-10.05 стор. 2 невидимка.png'),
     },
     {
       ...img('29_03-10_05/Газета 29.03-10.05 стор. 3.png'),
-      uvOverlay: '/assets/pictures/29_03-10_05/Газета 29.03-10.05 стор. 3 невидимка.png',
+      uvOverlay: assetUrl('assets/pictures/29_03-10_05/Газета 29.03-10.05 стор. 3 невидимка.png'),
     },
     {
       ...img('29_03-10_05/Газета 29.03-10.05 стор. 4.png'),
-      uvOverlay: '/assets/pictures/29_03-10_05/Газета 29.03-10.05 стор. 4 невидимка.png',
+      uvOverlay: assetUrl('assets/pictures/29_03-10_05/Газета 29.03-10.05 стор. 4 невидимка.png'),
     },
     {
       ...img('29_03-10_05/Газета 29.03-10.05 стор. 5.png'),
-      uvOverlay: '/assets/pictures/29_03-10_05/Газета 29.03-10.05 стор. 5 невидимка.png',
+      uvOverlay: assetUrl('assets/pictures/29_03-10_05/Газета 29.03-10.05 стор. 5 невидимка.png'),
     },
     img('остання стор.png'),
   ],
@@ -177,18 +177,17 @@ export const DROPDOWN_MENUS = {
 
 export const HOME_CAROUSEL_ITEMS = [
   {
-    image: '/assets/pictures/29_03-10_05/Газета 29.03-10.05 Титул.png',
+    image: assetUrl('assets/pictures/29_03-10_05/Газета 29.03-10.05 Титул.png'),
     route: '/l9bf3n0p',
     caption: 'Новий випуск з новим форматом!',
-    isNew: true,
   },
   {
-    image: '/assets/pictures/kchbnk/Нов руб.png',
+    image: assetUrl('assets/pictures/kchbnk/Нов руб.png'),
     route: '/qbE34klm',
     caption: 'Нова рубрика!',
   },
   {
-    image: '/assets/pictures/skoro/5323723242159675852.jpg',
+    image: assetUrl('assets/pictures/skoro/5323723242159675852.jpg'),
     route: '/inter1',
     caption: "Нове інтерв'ю!",
   },
@@ -209,6 +208,6 @@ export const MAIN_MENU_BUTTONS = [
 export const SERVER_WIKI_URL =
   'https://tsebuleve.wiki.gg/uk/wiki/%D0%93%D0%B0%D0%B9%D0%B4_%C2%AB%D0%A0%D0%B5%D1%94%D1%81%D1%82%D1%80%D0%B0%D1%86%D1%96%D1%8F_%D0%BD%D0%B0_%D1%81%D0%B5%D1%80%D0%B2%D0%B5%D1%80%D1%96%C2%BB';
 
-export const BG_ASSET = '/assets/pictures/bg/bg_borukva.png';
-export const BG_MONOCHROME_ASSET = '/assets/pictures/bg/bg_borukva-monochrome.png';
-export const BG_BLUE_ASSET = '/assets/pictures/bg/bg_borukva-blue.png';
+export const BG_ASSET = assetUrl('assets/pictures/bg/bg_borukva.png');
+export const BG_MONOCHROME_ASSET = assetUrl('assets/pictures/bg/bg_borukva-monochrome.png');
+export const BG_BLUE_ASSET = assetUrl('assets/pictures/bg/bg_borukva-blue.png');
