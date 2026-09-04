@@ -74,7 +74,7 @@ app.use(
       return callback(null, true); // Permissive CORS for public API
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-moderation-token'],
   })
 );
 
