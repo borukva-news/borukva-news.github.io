@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DROPDOWN_MENUS, HOME_CAROUSEL_ITEMS, SERVER_WIKI_URL, BG_MONOCHROME_ASSET } from '../data/issues';
+import { useDevModeCombo } from '../hooks/useDevModeCombo';
 
 const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://borukva-news-github-io.onrender.com').replace(/\/+$/, '');
 const PROFILE_KEY = 'borukva-news-profile';
@@ -190,12 +191,29 @@ function Carousel({ navigate }) {
   );
 }
 
-function FeedItem({ item, onRefresh, visitorId }) {
+function FeedItem({ item, onRefresh, visitorId, devMode }) {
   const profile = getProfile();
   const [comment, setComment] = useState({ author: profile.author || '', authorEmail: profile.authorEmail || '', text: '' });
   const [busy, setBusy] = useState(false);
   const [viewerImage, setViewerImage] = useState(null);
   const [viewerZoom, setViewerZoom] = useState(1);
+
+  async function deleteNews() {
+    if (!window.confirm(`Видалити опубліковану новину «${item.title}»?`)) return;
+    const token = window.prompt('Введіть MODERATION_SECRET для підтвердження видалення:');
+    if (!token) return;
+    setBusy(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/news/${item.id}`, { method: 'DELETE', headers: { 'x-moderation-token': token } });
+      if (!response.ok) throw new Error(await response.text());
+      onRefresh();
+    } catch (error) {
+      console.error('[feed] delete failed', { id: item.id, message: error.message });
+      alert('Не вдалося видалити новину. Перевірте секрет модерації.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function react(type) {
     if (item.userReaction) return;
@@ -224,6 +242,7 @@ function FeedItem({ item, onRefresh, visitorId }) {
         <button className={item.userReaction === 'like' ? 'active' : ''} disabled={busy || Boolean(item.userReaction)} onClick={() => react('like')}>👍 {item.likes}{item.userReaction === 'like' ? ' · Вже поставлено' : ''}</button>
         <button className={item.userReaction === 'dislike' ? 'active' : ''} disabled={busy || Boolean(item.userReaction)} onClick={() => react('dislike')}>👎 {item.dislikes}{item.userReaction === 'dislike' ? ' · Вже поставлено' : ''}</button>
         <span>{item.commentsCount} коментарів</span>
+        {devMode && <button className="feed-delete-button" disabled={busy} onClick={deleteNews}>Видалити</button>}
       </div>
       <div className="feed-comments">{item.comments?.map((entry, index) => <p key={`${entry.createdAt}-${index}`}><strong>{entry.author}:</strong> {entry.text}</p>)}</div>
       <form className="comment-form" onSubmit={submitComment}>
@@ -269,6 +288,8 @@ export function NewsHomePage({ feedPage = false }) {
   const navigate = useNavigate();
   const [feed, setFeed] = useState([]);
   const [visitorId] = useState(getVisitorId);
+  const [devMode, setDevMode] = useState(false);
+  useDevModeCombo(() => setDevMode((enabled) => !enabled));
 
   const loadFeed = () => fetch(`${BACKEND_URL}/api/news/feed?visitorId=${encodeURIComponent(visitorId)}`).then((response) => response.ok ? response.json() : []).then(setFeed).catch(() => setFeed([]));
   useEffect(() => { loadFeed(); }, []);
@@ -302,7 +323,7 @@ export function NewsHomePage({ feedPage = false }) {
       <main className="news-home-main">
         {!feedPage && <Carousel navigate={navigate} />}
 
-        {feedPage && <div className="feed-overlay"><section className="feed-section feed-page-section" id="feed"><div className="feed-section-heading"><span className="section-kicker">BORUKVA / LIVE</span><h1>Повний feed</h1><div className="feed-heading-actions"><button onClick={loadFeed}>Оновити</button><button className="feed-close-button" onClick={() => navigate('/')}>Вийти</button></div></div>{feed.map((item) => <FeedItem key={item.id} item={item} visitorId={visitorId} onRefresh={loadFeed} />)}{!feed.length && <p className="feed-empty">Стрічка завантажується або ще не має опублікованих випусків.</p>}</section></div>}
+        {feedPage && <div className="feed-overlay"><section className="feed-section feed-page-section" id="feed"><div className="feed-section-heading"><span className="section-kicker">BORUKVA / LIVE</span><h1>Повний feed</h1>{devMode && <span className="dev-badge">DEV</span>}<div className="feed-heading-actions"><button onClick={loadFeed}>Оновити</button><button className="feed-close-button" onClick={() => navigate('/')}>Вийти</button></div></div>{feed.map((item) => <FeedItem key={item.id} item={item} visitorId={visitorId} devMode={devMode} onRefresh={loadFeed} />)}{!feed.length && <p className="feed-empty">Стрічка завантажується або ще не має опублікованих випусків.</p>}</section></div>}
         {!feedPage && <SideFeedWidget items={feed} onSelect={() => navigate('/feed')} />}
 
         <div className="news-home-footer">

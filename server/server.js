@@ -403,6 +403,24 @@ app.get('/api/news/moderate', async (req, res) => {
   } catch (err) { console.error('[moderate]', err); res.status(err.status || 502).send('Moderation failed'); }
 });
 
+app.delete('/api/news/:id', async (req, res) => {
+  const { id } = req.params;
+  const token = req.get('x-moderation-token') || req.body?.token;
+  if (!validNewsId(id) || !MODERATION_SECRET || token !== MODERATION_SECRET) return res.status(403).json({ error: 'Invalid moderation token' });
+  try {
+    const publishedFile = await readGithubFile('custom-news', `published/${id}.json`);
+    const news = parseNews(JSON.parse(publishedFile.decoded));
+    await removeGithubFile('custom-news', `published/${id}.json`, `Delete published ${id}`);
+    await Promise.all(news.images.map((name) => removeGithubFile('custom-news', `published/images/${name}`, `Delete ${name}`).catch((err) => { if (err.status !== 404) throw err; })));
+    await removeGithubFile('news-data', `hotspots/${id}_hotspots.json`, `Delete hotspots for ${id}`).catch((err) => { if (err.status !== 404) throw err; });
+    console.log('[news delete] completed', { id });
+    res.json({ status: 'deleted', id });
+  } catch (err) {
+    console.error('[news delete] failed', { id, code: err.code, status: err.status, message: err.message });
+    res.status(err.status || 502).json({ error: 'Failed to delete published news' });
+  }
+});
+
 app.get('/api/news/image/:folder/:filename', async (req, res) => {
   const { folder, filename } = req.params;
   if (!['published', 'drafts'].includes(folder) || !/^[\w.-]+\.png$/i.test(filename)) return res.status(400).json({ error: 'Invalid image path' });

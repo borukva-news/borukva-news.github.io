@@ -18,7 +18,7 @@ const PRESET_BACKGROUNDS = [
 
 export default function NewspaperGenerator() {
   const navigate = useNavigate();
-  const [docName, setDocName] = useState('Газета_29.03-10.05');
+  const [docName, setDocName] = useState('Моя новина');
   const savedProfile = getSavedProfile();
   const [authorNick, setAuthorNick] = useState(savedProfile.author || '');
   const [authorEmail, setAuthorEmail] = useState(savedProfile.authorEmail || '');
@@ -30,6 +30,7 @@ export default function NewspaperGenerator() {
   const [hotspotMode, setHotspotMode] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [shortcutStatus, setShortcutStatus] = useState('');
   const [hasCopiedElement, setHasCopiedElement] = useState(false);
 
@@ -325,7 +326,7 @@ export default function NewspaperGenerator() {
   const selectedElement = currentPage.elements.find((el) => el.id === selectedElId);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+    <div className="generator-shell" style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
       {isExporting && (
         <div className="generator-loading-overlay" role="status" aria-live="polite">
           <div className="generator-spinner" />
@@ -333,8 +334,13 @@ export default function NewspaperGenerator() {
           <span>Не закривайте сторінку до завершення.</span>
         </div>
       )}
+      <button className="generator-menu-trigger" type="button" onClick={() => setIsSettingsOpen(true)} aria-label="Відкрити налаштування">
+        ☰ <span>Налаштування</span>
+      </button>
+      {isSettingsOpen && <button className="generator-menu-backdrop" type="button" aria-label="Закрити налаштування" onClick={() => setIsSettingsOpen(false)} />}
       {/* ── Ліва Панель Управління ── */}
-      <div style={{ width: '340px', background: '#222', padding: '16px', overflowY: 'auto', borderRight: '2px solid #444' }}>
+      <div className={`generator-controls${isSettingsOpen ? ' is-open' : ''}`} style={{ width: '340px', background: '#222', padding: '16px', overflowY: 'auto', borderRight: '2px solid #444' }}>
+        <button className="generator-menu-close" type="button" onClick={() => setIsSettingsOpen(false)} aria-label="Закрити налаштування">×</button>
         <button onClick={() => navigate('/')} style={{ marginBottom: '14px' }}>
           ← На головний екран
         </button>
@@ -479,6 +485,7 @@ export default function NewspaperGenerator() {
 
         {/* Дії/Збереження */}
         <div style={{ borderTop: '1px solid #444', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <h3 style={{ fontSize: '14px', color: 'green' }}>Перед публікацією рекомендуєм зберегти сторінку собі!</h3>
           <button onClick={handleSaveToDevice} disabled={isExporting}>Зберегти собі</button>
           <button onClick={handleSendToReview} disabled={isExporting} style={{ background: '#e67e22' }}>
             Відправити на розгляд
@@ -487,7 +494,7 @@ export default function NewspaperGenerator() {
       </div>
 
       {/* ── Область полотна (Canvas) ── */}
-      <div style={{ flex: 1, background: '#111', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', padding: '20px' }}>
+      <div className="generator-canvas" style={{ flex: 1, background: '#111', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', padding: '20px' }}>
         <div
           ref={pageRef}
           className="newspaper-page"
