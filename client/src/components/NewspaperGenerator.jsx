@@ -5,6 +5,11 @@ import { HotspotDevLayer } from './HotspotLayer';
 import { assetUrl } from '../data/issues';
 
 const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://borukva-news-github-io.onrender.com').replace(/\/+$/, '');
+const PROFILE_KEY = 'borukva-news-profile';
+
+function getSavedProfile() {
+  try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}'); } catch { return {}; }
+}
 
 const PRESET_BACKGROUNDS = [
   { id: 'paper1', label: 'Фон Borukva', path: assetUrl('assets/pictures/bg/bg_borukva.png') },
@@ -14,8 +19,9 @@ const PRESET_BACKGROUNDS = [
 export default function NewspaperGenerator() {
   const navigate = useNavigate();
   const [docName, setDocName] = useState('Газета_29.03-10.05');
-  const [authorNick, setAuthorNick] = useState('');
-  const [authorEmail, setAuthorEmail] = useState('');
+  const savedProfile = getSavedProfile();
+  const [authorNick, setAuthorNick] = useState(savedProfile.author || '');
+  const [authorEmail, setAuthorEmail] = useState(savedProfile.authorEmail || '');
   const [pages, setPages] = useState([
     { id: 1, background: PRESET_BACKGROUNDS[0]?.path || '', elements: [], hotspots: [] },
   ]);
@@ -271,6 +277,7 @@ export default function NewspaperGenerator() {
       if (!response.ok) throw new Error(await response.text());
 
       const result = await response.json();
+      localStorage.setItem(PROFILE_KEY, JSON.stringify({ author: authorNick.trim(), authorEmail: authorEmail.trim() }));
       alert(`Новину ${result.id} збережено як чернетку та відправлено на модерацію.`);
     } catch (err) {
       console.error(err);

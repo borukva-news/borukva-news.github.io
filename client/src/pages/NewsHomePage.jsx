@@ -3,6 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { DROPDOWN_MENUS, HOME_CAROUSEL_ITEMS, SERVER_WIKI_URL, BG_MONOCHROME_ASSET } from '../data/issues';
 
 const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://borukva-news-github-io.onrender.com').replace(/\/+$/, '');
+const PROFILE_KEY = 'borukva-news-profile';
+const VISITOR_KEY = 'borukva-news-visitor-id';
+
+function getProfile() {
+  try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}'); } catch { return {}; }
+}
+
+function getVisitorId() {
+  let visitorId = localStorage.getItem(VISITOR_KEY);
+  if (!visitorId) {
+    visitorId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    localStorage.setItem(VISITOR_KEY, visitorId);
+  }
+  return visitorId;
+}
+
+function saveProfile(profile) {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+}
 
 function NewBadge() {
   return <span className="new-badge">НОВИЙ</span>;
@@ -171,23 +190,28 @@ function Carousel({ navigate }) {
   );
 }
 
-function FeedItem({ item, onRefresh }) {
-  const [comment, setComment] = useState({ author: '', text: '' });
+function FeedItem({ item, onRefresh, visitorId }) {
+  const profile = getProfile();
+  const [comment, setComment] = useState({ author: profile.author || '', authorEmail: profile.authorEmail || '', text: '' });
   const [busy, setBusy] = useState(false);
+  const [viewerImage, setViewerImage] = useState(null);
+  const [viewerZoom, setViewerZoom] = useState(1);
 
   async function react(type) {
+    if (item.userReaction) return;
     setBusy(true);
-    await fetch(`${BACKEND_URL}/api/news/${item.id}/reactions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type }) });
+    const response = await fetch(`${BACKEND_URL}/api/news/${item.id}/reactions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, visitorId }) });
     setBusy(false);
-    onRefresh();
+    if (response.ok) onRefresh();
   }
 
   async function submitComment(event) {
     event.preventDefault();
-    if (!comment.author.trim() || !comment.text.trim()) return;
+    if (!comment.author.trim() || !comment.authorEmail.trim() || !comment.text.trim()) return;
     setBusy(true);
-    await fetch(`${BACKEND_URL}/api/news/${item.id}/comments`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(comment) });
-    setComment({ author: '', text: '' });
+    const response = await fetch(`${BACKEND_URL}/api/news/${item.id}/comments`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(comment) });
+    if (response.ok) saveProfile({ author: comment.author.trim(), authorEmail: comment.authorEmail.trim() });
+    setComment({ ...comment, text: '' });
     setBusy(false);
     onRefresh();
   }
@@ -195,18 +219,20 @@ function FeedItem({ item, onRefresh }) {
   return (
     <article className="feed-item" id={item.id}>
       <div className="feed-item-heading"><h2>{item.title}</h2><span>{item.author}</span></div>
-      <div className="feed-pages">{item.images.map((image, index) => <img key={image} src={image} alt={`${item.title}, сторінка ${index + 1}`} loading="lazy" />)}</div>
+      <div className="feed-pages">{item.images.map((image, index) => <button className="feed-image-button" key={image} type="button" onClick={() => { setViewerImage(image); setViewerZoom(1); }}><img src={image} alt={`${item.title}, сторінка ${index + 1}`} loading="lazy" /></button>)}</div>
       <div className="feed-actions">
-        <button disabled={busy} onClick={() => react('like')}>👍 {item.likes}</button>
-        <button disabled={busy} onClick={() => react('dislike')}>👎 {item.dislikes}</button>
+        <button className={item.userReaction === 'like' ? 'active' : ''} disabled={busy || Boolean(item.userReaction)} onClick={() => react('like')}>👍 {item.likes}{item.userReaction === 'like' ? ' · Вже поставлено' : ''}</button>
+        <button className={item.userReaction === 'dislike' ? 'active' : ''} disabled={busy || Boolean(item.userReaction)} onClick={() => react('dislike')}>👎 {item.dislikes}{item.userReaction === 'dislike' ? ' · Вже поставлено' : ''}</button>
         <span>{item.commentsCount} коментарів</span>
       </div>
       <div className="feed-comments">{item.comments?.map((entry, index) => <p key={`${entry.createdAt}-${index}`}><strong>{entry.author}:</strong> {entry.text}</p>)}</div>
       <form className="comment-form" onSubmit={submitComment}>
         <input aria-label="Ваш нік" placeholder="Ваш нік" value={comment.author} onChange={(e) => setComment({ ...comment, author: e.target.value })} />
+        <input aria-label="Ваш Email" type="email" placeholder="Ваш Email" value={comment.authorEmail} onChange={(e) => setComment({ ...comment, authorEmail: e.target.value })} />
         <input aria-label="Текст коментаря" placeholder="Текст коментаря" value={comment.text} onChange={(e) => setComment({ ...comment, text: e.target.value })} />
         <button disabled={busy} type="submit">Надіслати</button>
       </form>
+      {viewerImage && <div className="image-viewer" role="dialog" aria-modal="true" onClick={() => setViewerImage(null)}><div className="image-viewer-toolbar" onClick={(event) => event.stopPropagation()}><button type="button" onClick={() => setViewerZoom((zoom) => Math.max(0.5, zoom - 0.25))}>-</button><span>{Math.round(viewerZoom * 100)}%</span><button type="button" onClick={() => setViewerZoom((zoom) => Math.min(3, zoom + 0.25))}>+</button><button type="button" onClick={() => setViewerZoom(1)}>100%</button><button type="button" className="image-viewer-close" onClick={() => setViewerImage(null)}>x</button></div><img src={viewerImage} alt={item.title} style={{ transform: `scale(${viewerZoom})` }} onClick={(event) => event.stopPropagation()} /></div>}
     </article>
   );
 }
@@ -242,8 +268,9 @@ function SideFeedWidget({ items, onSelect }) {
 export function NewsHomePage({ feedPage = false }) {
   const navigate = useNavigate();
   const [feed, setFeed] = useState([]);
+  const [visitorId] = useState(getVisitorId);
 
-  const loadFeed = () => fetch(`${BACKEND_URL}/api/news/feed`).then((response) => response.ok ? response.json() : []).then(setFeed).catch(() => setFeed([]));
+  const loadFeed = () => fetch(`${BACKEND_URL}/api/news/feed?visitorId=${encodeURIComponent(visitorId)}`).then((response) => response.ok ? response.json() : []).then(setFeed).catch(() => setFeed([]));
   useEffect(() => { loadFeed(); }, []);
 
   return (
@@ -275,13 +302,7 @@ export function NewsHomePage({ feedPage = false }) {
       <main className="news-home-main">
         {!feedPage && <Carousel navigate={navigate} />}
 
-        {feedPage && (
-          <section className="feed-section feed-page-section" id="feed">
-            <div className="feed-section-heading"><span className="section-kicker">BORUKVA / LIVE</span><h1>Повний feed</h1><button onClick={loadFeed}>Оновити</button></div>
-            {feed.map((item) => <FeedItem key={item.id} item={item} onRefresh={loadFeed} />)}
-            {!feed.length && <p className="feed-empty">Стрічка завантажується або ще не має опублікованих випусків.</p>}
-          </section>
-        )}
+        {feedPage && <div className="feed-overlay"><section className="feed-section feed-page-section" id="feed"><div className="feed-section-heading"><span className="section-kicker">BORUKVA / LIVE</span><h1>Повний feed</h1><div className="feed-heading-actions"><button onClick={loadFeed}>Оновити</button><button className="feed-close-button" onClick={() => navigate('/')}>Вийти</button></div></div>{feed.map((item) => <FeedItem key={item.id} item={item} visitorId={visitorId} onRefresh={loadFeed} />)}{!feed.length && <p className="feed-empty">Стрічка завантажується або ще не має опублікованих випусків.</p>}</section></div>}
         {!feedPage && <SideFeedWidget items={feed} onSelect={() => navigate('/feed')} />}
 
         <div className="news-home-footer">

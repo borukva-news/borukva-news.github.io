@@ -157,11 +157,17 @@ function validNewsId(id) {
 }
 
 function parseNews(value) {
-  return { ...value, likes: Number(value.likes) || 0, dislikes: Number(value.dislikes) || 0, comments: Array.isArray(value.comments) ? value.comments : [] };
+  return {
+    ...value,
+    likes: Number(value.likes) || 0,
+    dislikes: Number(value.dislikes) || 0,
+    comments: Array.isArray(value.comments) ? value.comments : [],
+    reactionVoters: value.reactionVoters && typeof value.reactionVoters === 'object' ? value.reactionVoters : {},
+  };
 }
 
 function imageUrl(folder, filename) {
-  return `https://raw.githubusercontent.com/${GITHUB_OWNER}/${CUSTOM_NEWS_REPO}/main/${folder}/images/${encodeURIComponent(filename)}`;
+  return `${API_PUBLIC_URL}/api/news/image/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}`;
 }
 
 function mailer() {
@@ -292,7 +298,7 @@ app.post('/api/propose-news', async (req, res) => {
     const id = `news_${Math.max(Number(ids.lastId) || 0, Math.floor(Date.now() / 1000) - 1) + 1}`;
     await writeGithubFile('custom-news', 'ids/news_ids.json', JSON.stringify({ lastId: Number(id.slice(5)) }, null, 2), `Reserve ${id}`, idsSha);
     const imageNames = images.map((_, index) => `${id}_p${index + 1}.png`);
-    const news = { id, title: title.trim(), authorNick: authorNick.trim(), authorEmail: authorEmail.trim(), status: 'draft', createdAt: new Date().toISOString(), images: imageNames, likes: 0, dislikes: 0, comments: [], commentsCount: 0 };
+    const news = { id, title: title.trim(), authorNick: authorNick.trim(), authorEmail: authorEmail.trim(), status: 'draft', createdAt: new Date().toISOString(), images: imageNames, likes: 0, dislikes: 0, comments: [], commentsCount: 0, reactionVoters: {} };
     await writeGithubFile('custom-news', `drafts/${id}.json`, JSON.stringify(news, null, 2), `Create draft ${id}`);
     await Promise.all(images.map((data, index) => writeGithubFile('custom-news', `drafts/images/${imageNames[index]}`, Buffer.from(String(data).replace(/^data:image\/png;base64,/, ''), 'base64'), `Add ${imageNames[index]}`)));
     await writeGithubFile('news-data', `hotspots/${id}_hotspots.json`, JSON.stringify({ newsId: id, hotspots }, null, 2), `Add hotspots for ${id}`);
@@ -324,36 +330,51 @@ app.get('/api/news/moderate', async (req, res) => {
   } catch (err) { console.error('[moderate]', err); res.status(err.status || 502).send('Moderation failed'); }
 });
 
+app.get('/api/news/image/:folder/:filename', async (req, res) => {
+  const { folder, filename } = req.params;
+  if (!['published', 'drafts'].includes(folder) || !/^[\w.-]+\.png$/i.test(filename)) return res.status(400).json({ error: 'Invalid image path' });
+  try {
+    const file = await githubRequest('custom-news', `${folder}/images/${filename}`);
+    res.type('png').send(Buffer.from(file.content.replace(/\s/g, ''), 'base64'));
+  } catch (err) {
+    res.status(err.status || 502).json({ error: 'Failed to load news image' });
+  }
+});
+
 app.get('/api/news/feed', async (_req, res) => {
   try {
+    const visitorId = typeof _req.query.visitorId === 'string' ? _req.query.visitorId : '';
     const files = await githubRequest('custom-news', 'published');
     const news = await Promise.all(files.filter((file) => file.name.endsWith('.json')).map(async (file) => {
       const item = parseNews(JSON.parse((await readGithubFile('custom-news', file.path)).decoded));
-      return { ...item, author: item.authorNick, commentsCount: item.comments.length, images: item.images.map((name) => imageUrl('published', name)) };
+      return { ...item, author: item.authorNick, userReaction: visitorId ? item.reactionVoters[visitorId] || null : null, commentsCount: item.comments.length, images: item.images.map((name) => imageUrl('published', name)) };
     }));
     res.json(news.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
   } catch (err) { res.status(err.status || 502).json({ error: 'Failed to load published news' }); }
 });
 
 app.post('/api/news/:id/reactions', async (req, res) => {
-  const { type } = req.body || {};
-  if (!validNewsId(req.params.id) || !['like', 'dislike'].includes(type)) return res.status(400).json({ error: 'Invalid reaction' });
+  const { type, visitorId } = req.body || {};
+  if (!validNewsId(req.params.id) || !['like', 'dislike'].includes(type) || typeof visitorId !== 'string' || !/^[a-zA-Z0-9_-]{16,100}$/.test(visitorId)) return res.status(400).json({ error: 'Invalid reaction' });
   try {
     const file = await readGithubFile('custom-news', `published/${req.params.id}.json`);
     const news = parseNews(JSON.parse(file.decoded));
+    const previousReaction = news.reactionVoters[visitorId];
+    if (previousReaction) return res.json({ likes: news.likes, dislikes: news.dislikes, userReaction: previousReaction });
     news[type === 'like' ? 'likes' : 'dislikes'] += 1;
+    news.reactionVoters[visitorId] = type;
     await writeGithubFile('custom-news', `published/${req.params.id}.json`, JSON.stringify(news, null, 2), `React to ${req.params.id}`, file.sha);
-    res.json({ likes: news.likes, dislikes: news.dislikes });
+    res.json({ likes: news.likes, dislikes: news.dislikes, userReaction: type });
   } catch (err) { res.status(err.status || 502).json({ error: 'Failed to save reaction' }); }
 });
 
 app.post('/api/news/:id/comments', async (req, res) => {
-  const { author, text } = req.body || {};
+  const { author, authorEmail, text } = req.body || {};
   if (!validNewsId(req.params.id) || !author?.trim() || !text?.trim()) return res.status(400).json({ error: 'Author and text are required' });
   try {
     const file = await readGithubFile('custom-news', `published/${req.params.id}.json`);
     const news = parseNews(JSON.parse(file.decoded));
-    news.comments.push({ author: author.trim(), text: text.trim(), createdAt: new Date().toISOString() });
+    news.comments.push({ author: author.trim(), authorEmail: authorEmail?.trim() || '', text: text.trim(), createdAt: new Date().toISOString() });
     news.commentsCount = news.comments.length;
     await writeGithubFile('custom-news', `published/${req.params.id}.json`, JSON.stringify(news, null, 2), `Comment on ${req.params.id}`, file.sha);
     res.status(201).json(news.comments.at(-1));
