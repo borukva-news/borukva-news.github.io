@@ -265,8 +265,10 @@ export default function NewspaperGenerator() {
     setIsExporting(true);
     setExportStatus('Підготовка сторінок...');
     console.info('[generator] submission started', { pages: pages.length, title: docName });
+    let stage = 'initialization';
 
     try {
+      stage = 'capture';
       const originalPageIndex = activePageIndex;
       setSelectedElId(null);
       const images = [];
@@ -279,6 +281,7 @@ export default function NewspaperGenerator() {
         console.info('[generator] page captured', { page: index + 1, bytes: image?.length || 0 });
       }
       setActivePageIndex(originalPageIndex);
+      stage = 'request';
       setExportStatus('Передача файлів на сервер...');
       console.info('[generator] sending request', { imageCount: images.length });
       const response = await fetch(`${BACKEND_URL}/api/propose-news`, {
@@ -286,17 +289,32 @@ export default function NewspaperGenerator() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: docName, authorNick, authorEmail, images, hotspots: pages.flatMap((page, index) => page.hotspots.map((hotspot) => ({ ...hotspot, page: index + 1 }))) }),
       });
-      if (!response.ok) throw new Error(await response.text());
+      const responseText = await response.text();
+      console.info('[generator] server status', { status: response.status, ok: response.ok, body: responseText.slice(0, 1000) });
+      if (!response.ok) {
+        const error = new Error(`API ${response.status}: ${responseText.slice(0, 500)}`);
+        error.status = response.status;
+        error.responseBody = responseText;
+        throw error;
+      }
 
+      stage = 'response';
       setExportStatus('Сервер зберігає чернетку та надсилає лист...');
-      const result = await response.json();
+      const result = JSON.parse(responseText);
       console.info('[generator] server response', result);
       localStorage.setItem(PROFILE_KEY, JSON.stringify({ author: authorNick.trim(), authorEmail: authorEmail.trim() }));
       alert(result.mailSent
         ? `Новину ${result.id} збережено як чернетку та відправлено на модерацію.`
         : `Новину ${result.id} збережено як чернетку, але лист модератору не надіслано. Перевірте SMTP налаштування на Render.`);
     } catch (err) {
-      console.error('[generator] submission failed', err);
+      console.error('[generator] submission failed', {
+        stage,
+        name: err?.name,
+        message: err?.message,
+        status: err?.status,
+        responseBody: err?.responseBody,
+        stack: err?.stack,
+      });
       alert('Помилка при відправці файлів.');
     } finally {
       setExportStatus('');

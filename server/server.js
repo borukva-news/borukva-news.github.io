@@ -308,7 +308,19 @@ app.put('/api/hotspots/:file', async (req, res) => {
 
 app.post('/api/propose-news', async (req, res) => {
   const { title, authorNick, authorEmail, images, hotspots = [] } = req.body || {};
+  console.log('[propose-news] request received', {
+    title,
+    authorNick,
+    imageCount: Array.isArray(images) ? images.length : 0,
+    hotspotCount: Array.isArray(hotspots) ? hotspots.length : 0,
+  });
   if (!title?.trim() || !authorNick?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authorEmail || '') || !Array.isArray(images) || images.length === 0) {
+    console.error('[propose-news] validation failed', {
+      hasTitle: Boolean(title?.trim()),
+      hasAuthorNick: Boolean(authorNick?.trim()),
+      hasValidEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authorEmail || ''),
+      imageCount: Array.isArray(images) ? images.length : 0,
+    });
     return res.status(400).json({ error: 'title, authorNick, authorEmail and at least one image are required' });
   }
   try {
