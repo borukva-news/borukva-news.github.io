@@ -178,8 +178,13 @@ function mailer() {
 async function sendMail(to, subject, text) {
   const transport = mailer();
   if (!transport) return false;
-  await transport.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, subject, text });
-  return true;
+  try {
+    await transport.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, subject, text });
+    return true;
+  } catch (err) {
+    console.error('[mail] failed:', err.message);
+    return false;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -295,7 +300,7 @@ app.post('/api/propose-news', async (req, res) => {
     } catch (err) {
       if (err.status !== 404 && !(err instanceof SyntaxError)) throw err;
     }
-    const id = `news_${Math.max(Number(ids.lastId) || 0, Math.floor(Date.now() / 1000) - 1) + 1}`;
+    const id = `news_${Math.max(Number(ids.lastId) || 0, Date.now()) + 1}`;
     await writeGithubFile('custom-news', 'ids/news_ids.json', JSON.stringify({ lastId: Number(id.slice(5)) }, null, 2), `Reserve ${id}`, idsSha);
     const imageNames = images.map((_, index) => `${id}_p${index + 1}.png`);
     const news = { id, title: title.trim(), authorNick: authorNick.trim(), authorEmail: authorEmail.trim(), status: 'draft', createdAt: new Date().toISOString(), images: imageNames, likes: 0, dislikes: 0, comments: [], commentsCount: 0, reactionVoters: {} };

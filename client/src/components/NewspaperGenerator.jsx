@@ -230,7 +230,7 @@ export default function NewspaperGenerator() {
   // ── Генерація PNG картинки ──
   const capturePageImage = async () => {
     if (!pageRef.current) return null;
-    return await toPng(pageRef.current, { cacheBust: true, pixelRatio: 2 });
+    return await toPng(pageRef.current, { cacheBust: true, width: 600, height: 850, pixelRatio: 2 });
   };
 
   const waitForPageRender = () => new Promise((resolve) => {
@@ -453,6 +453,9 @@ export default function NewspaperGenerator() {
             position: 'relative',
             width: '600px',
             height: '850px',
+            minWidth: '600px',
+            minHeight: '850px',
+            flex: '0 0 600px',
             backgroundImage: currentPage.background ? `url(${currentPage.background})` : 'none',
             backgroundColor: '#dcd6cd',
             backgroundSize: 'cover',
