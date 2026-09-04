@@ -88,6 +88,16 @@ function MobileMenu({ navigate }) {
       </button>
       {open && (
         <div className="mobile-menu-panel">
+          <button
+            className="mobile-menu-publish"
+            onClick={() => {
+              setOpen(false);
+              navigate('/generator');
+            }}
+          >
+            <span aria-hidden="true">+</span>
+            Опублікувати новину
+          </button>
           {Object.entries(DROPDOWN_MENUS).map(([category, items]) => (
             <div key={category} className="mobile-menu-category">
               <div className="mobile-menu-category-title">{category}</div>
@@ -301,10 +311,6 @@ export function NewsHomePage({ feedPage = false }) {
       <header className="news-home-header">
         <div className="news-home-logo">Borukva News</div>
 
-        <button className="publish-news-btn news-home-publish-btn" onClick={() => navigate('/generator')}>
-          Опублікувати новину <span aria-hidden="true">+</span>
-        </button>
-
         <nav className="news-home-nav desktop-only">
           {Object.entries(DROPDOWN_MENUS).map(([category, items]) => (
             <Dropdown key={category} title={category} items={items} navigate={navigate} />
@@ -318,6 +324,11 @@ export function NewsHomePage({ feedPage = false }) {
         <div className="mobile-only">
           <MobileMenu navigate={navigate} />
         </div>
+        {!feedPage && (
+          <button className="mobile-live-feed-button" type="button" onClick={() => navigate('/feed')}>
+            <span aria-hidden="true">●</span> Live feed
+          </button>
+        )}
       </header>
 
       <main className="news-home-main">

@@ -11,9 +11,14 @@ function getSavedProfile() {
   try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}'); } catch { return {}; }
 }
 
+function getInitialPageZoom() {
+  if (typeof window === 'undefined') return 1;
+  return Math.min(1, Math.max(0.45, (window.innerWidth - 20) / 600));
+}
+
 const PRESET_BACKGROUNDS = [
-  { id: 'paper1', label: 'Фон Borukva', path: assetUrl('assets/pictures/bg/bg_borukva.png') },
-  { id: 'paper2', label: 'Фон Borukva монохромний', path: assetUrl('assets/pictures/bg/bg_borukva-monochrome.png') },
+  { id: 'paper1', label: 'Фон Borukva', path: assetUrl('assets/pictures/bg_custom_news/bg_classic.jpg') },
+  { id: 'paper2', label: 'Фон Borukva монохромний', path: assetUrl('assets/pictures/bg_custom_news/bg_monochrome.png') },
 ];
 
 export default function NewspaperGenerator() {
@@ -31,6 +36,7 @@ export default function NewspaperGenerator() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [pageZoom, setPageZoom] = useState(getInitialPageZoom);
   const [shortcutStatus, setShortcutStatus] = useState('');
   const [hasCopiedElement, setHasCopiedElement] = useState(false);
 
@@ -227,6 +233,15 @@ export default function NewspaperGenerator() {
       ...p,
       elements: p.elements.map((el) => (el.id === selectedElId ? { ...el, [key]: value } : el)),
     }));
+  };
+
+  const deleteElement = (elementId) => {
+    updateCurrentPage((page) => ({
+      ...page,
+      elements: page.elements.filter((element) => element.id !== elementId),
+    }));
+    setSelectedElId(null);
+    setShortcutStatus('Елемент видалено');
   };
 
   // ── Генерація PNG картинки ──
@@ -495,24 +510,32 @@ export default function NewspaperGenerator() {
 
       {/* ── Область полотна (Canvas) ── */}
       <div className="generator-canvas" style={{ flex: 1, background: '#111', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', padding: '20px' }}>
-        <div
-          ref={pageRef}
-          className="newspaper-page"
-          style={{
-            position: 'relative',
-            width: '600px',
-            height: '850px',
-            minWidth: '600px',
-            minHeight: '850px',
-            flex: '0 0 600px',
-            backgroundImage: currentPage.background ? `url(${currentPage.background})` : 'none',
-            backgroundColor: '#dcd6cd',
-            backgroundSize: 'cover',
-            color: '#000',
-            padding: '16px',
-            boxSizing: 'border-box',
-          }}
-        >
+        <div className="generator-page-stage" style={{ width: `${600 * pageZoom}px`, height: `${850 * pageZoom}px` }}>
+          <div className="generator-zoom-controls" role="group" aria-label="Масштаб листка">
+            <button type="button" onClick={() => setPageZoom((zoom) => Math.max(0.45, zoom - 0.1))} aria-label="Зменшити">-</button>
+            <span>{Math.round(pageZoom * 100)}%</span>
+            <button type="button" onClick={() => setPageZoom((zoom) => Math.min(1.5, zoom + 0.1))} aria-label="Збільшити">+</button>
+            <button type="button" onClick={() => setPageZoom(getInitialPageZoom())}>Вмістити</button>
+          </div>
+          <div className="generator-page-transform" style={{ width: '600px', height: '850px', transform: `scale(${pageZoom})`, transformOrigin: 'top left' }}>
+            <div
+              ref={pageRef}
+              className="newspaper-page"
+              style={{
+                position: 'relative',
+              width: '600px',
+              height: '850px',
+              minWidth: '600px',
+              minHeight: '850px',
+              flex: '0 0 600px',
+                backgroundImage: currentPage.background ? `url(${currentPage.background})` : 'none',
+                backgroundColor: '#dcd6cd',
+                backgroundSize: 'cover',
+                color: '#000',
+                padding: '16px',
+                boxSizing: 'border-box',
+              }}
+            >
           {/* Автоматична шапка */}
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #000', paddingBottom: '4px', marginBottom: '12px', fontSize: '14px' }}>
             <span>НОВИНИ БОРУКВИ</span>
@@ -540,6 +563,24 @@ export default function NewspaperGenerator() {
                   zIndex: selected ? 3 : 1,
                 }}
               >
+                {selected && (
+                  <button
+                    type="button"
+                    className="newspaper-element-delete"
+                    aria-label="Видалити елемент"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      deleteElement(el.id);
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
                 {el.type === 'text' && (
                   <div style={{ width: '100%', height: '100%', fontWeight: el.isBold ? 'bold' : 'normal', fontStyle: el.isItalic ? 'italic' : 'normal', fontSize: `${el.fontSize}px`, whiteSpace: 'pre-wrap', overflow: 'hidden' }}>
                     {el.content}
@@ -558,14 +599,16 @@ export default function NewspaperGenerator() {
             );
           })}
 
-          {/* Шар Хотспотів */}
-          {hotspotMode && (
+              {/* Шар Хотспотів */}
+              {hotspotMode && (
             <HotspotDevLayer
               hotspots={currentPage.hotspots}
               imageSize={{ width: 600, height: 850 }}
               onChange={(newSpots) => updateCurrentPage((p) => ({ ...p, hotspots: newSpots }))}
             />
-          )}
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
