@@ -188,14 +188,45 @@ function mailer() {
   });
 }
 
-async function sendMail(to, subject, text) {
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function moderationEmailHtml({ id, author, title, approveUrl, rejectUrl }) {
+  return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:30px;background:#f6f7f9">
+  <div style="background:#ffffff;border-radius:12px;padding:28px;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
+    <h2 style="margin-top:0;color:#202124;">📰 Нова новина на модерацію</h2>
+    <p style="color:#5f6368;font-size:15px;">Нова новина від автора <b>${escapeHtml(author)}</b> очікує на модерацію.</p>
+    <div style="background:#f1f3f4;border-radius:8px;padding:14px;margin:20px 0;">
+      <div style="font-size:12px;color:#80868b;">ID новини</div>
+      <div style="font-family:monospace;margin-top:4px;">${escapeHtml(id)}</div>
+      <div style="font-size:12px;color:#80868b;margin-top:12px;">Назва</div>
+      <div style="margin-top:4px;">${escapeHtml(title)}</div>
+    </div>
+    <p style="font-size:14px;color:#5f6368;">Оберіть дію:</p>
+    <div style="margin-top:20px;">
+      <a href="${escapeHtml(approveUrl)}" style="display:inline-block;background:#188038;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:7px;font-weight:bold;margin-right:8px;">✓ Схвалити</a>
+      <a href="${escapeHtml(rejectUrl)}" style="display:inline-block;background:#d93025;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:7px;font-weight:bold;">✕ Відхилити</a>
+    </div>
+    <hr style="border:none;border-top:1px solid #eee;margin:28px 0;">
+    <div style="font-size:12px;color:#9aa0a6;">Borukva News · Система модерації</div>
+  </div>
+</div>`;
+}
+
+async function sendMail(to, subject, text, html) {
   if (RESEND_API_KEY) {
     try {
       console.log('[mail] sending through Resend HTTPS', { to, from: RESEND_FROM });
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: RESEND_FROM, to: [to], subject, text }),
+        body: JSON.stringify({ from: RESEND_FROM, to: [to], subject, text, ...(html ? { html } : {}) }),
       });
       const body = await response.text();
       if (!response.ok) {
@@ -228,7 +259,7 @@ async function sendMail(to, subject, text) {
   }
   console.log('[mail] SMTP connection verified');
   try {
-    await transport.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, subject, text });
+    await transport.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, subject, text, ...(html ? { html } : {}) });
   } catch (err) {
     console.error('[mail] send failed:', err.code || 'UNKNOWN', err.message);
     return { sent: false, error: 'send_failed', code: err.code || 'UNKNOWN' };
@@ -376,7 +407,9 @@ app.post('/api/propose-news', async (req, res) => {
     console.log('[propose-news] sending moderation email', { id, to: MODERATOR_EMAIL });
     const approve = `${API_PUBLIC_URL}/api/news/moderate?id=${id}&action=approve&token=${encodeURIComponent(MODERATION_SECRET)}`;
     const reject = `${API_PUBLIC_URL}/api/news/moderate?id=${id}&action=reject&token=${encodeURIComponent(MODERATION_SECRET)}`;
-    const mailResult = await sendMail(MODERATOR_EMAIL, `Нова новина на модерацію: ${title}`, `ID: ${id}\nАвтор: ${authorNick} (${authorEmail})\n\nApprove: ${approve}\nReject: ${reject}`);
+    const moderationText = `ID: ${id}\nАвтор: ${authorNick} (${authorEmail})\nНазва: ${title}\n\nApprove: ${approve}\nReject: ${reject}`;
+    const moderationHtml = moderationEmailHtml({ id, author: authorNick, title, approveUrl: approve, rejectUrl: reject });
+    const mailResult = await sendMail(MODERATOR_EMAIL, `Нова новина на модерацію: ${title}`, moderationText, moderationHtml);
     console.log('[propose-news] completed', { id, mailSent: mailResult.sent, mailError: mailResult.error, mailCode: mailResult.code });
     res.status(201).json({ status: 'draft_created', id, mailSent: mailResult.sent, mailError: mailResult.error, mailCode: mailResult.code || null });
   } catch (err) {
