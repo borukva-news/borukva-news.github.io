@@ -29,6 +29,7 @@ export default function NewspaperGenerator() {
   const [selectedElId, setSelectedElId] = useState(null);
   const [hotspotMode, setHotspotMode] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState('');
   const [shortcutStatus, setShortcutStatus] = useState('');
   const [hasCopiedElement, setHasCopiedElement] = useState(false);
 
@@ -240,6 +241,8 @@ export default function NewspaperGenerator() {
   // ── Збереження на свій ПК ──
   const handleSaveToDevice = async () => {
     setIsExporting(true);
+    setExportStatus('Готуємо PNG...');
+    console.info('[generator] save started', { page: activePageIndex + 1 });
     const dataUrl = await capturePageImage();
     if (dataUrl) {
       const link = document.createElement('a');
@@ -247,6 +250,8 @@ export default function NewspaperGenerator() {
       link.href = dataUrl;
       link.click();
     }
+    console.info('[generator] save finished');
+    setExportStatus('');
     setIsExporting(false);
   };
 
@@ -258,17 +263,24 @@ export default function NewspaperGenerator() {
     }
 
     setIsExporting(true);
+    setExportStatus('Підготовка сторінок...');
+    console.info('[generator] submission started', { pages: pages.length, title: docName });
 
     try {
       const originalPageIndex = activePageIndex;
       setSelectedElId(null);
       const images = [];
       for (let index = 0; index < pages.length; index += 1) {
+        setExportStatus(`Генеруємо сторінку ${index + 1} з ${pages.length}...`);
         setActivePageIndex(index);
         await waitForPageRender();
-        images.push(await capturePageImage());
+        const image = await capturePageImage();
+        images.push(image);
+        console.info('[generator] page captured', { page: index + 1, bytes: image?.length || 0 });
       }
       setActivePageIndex(originalPageIndex);
+      setExportStatus('Передача файлів на сервер...');
+      console.info('[generator] sending request', { imageCount: images.length });
       const response = await fetch(`${BACKEND_URL}/api/propose-news`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -276,15 +288,18 @@ export default function NewspaperGenerator() {
       });
       if (!response.ok) throw new Error(await response.text());
 
+      setExportStatus('Сервер зберігає чернетку та надсилає лист...');
       const result = await response.json();
+      console.info('[generator] server response', result);
       localStorage.setItem(PROFILE_KEY, JSON.stringify({ author: authorNick.trim(), authorEmail: authorEmail.trim() }));
       alert(result.mailSent
         ? `Новину ${result.id} збережено як чернетку та відправлено на модерацію.`
         : `Новину ${result.id} збережено як чернетку, але лист модератору не надіслано. Перевірте SMTP налаштування на Render.`);
     } catch (err) {
-      console.error(err);
+      console.error('[generator] submission failed', err);
       alert('Помилка при відправці файлів.');
     } finally {
+      setExportStatus('');
       setIsExporting(false);
     }
   };
@@ -293,6 +308,13 @@ export default function NewspaperGenerator() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+      {isExporting && (
+        <div className="generator-loading-overlay" role="status" aria-live="polite">
+          <div className="generator-spinner" />
+          <strong>{exportStatus || 'Зачекайте...'}</strong>
+          <span>Не закривайте сторінку до завершення.</span>
+        </div>
+      )}
       {/* ── Ліва Панель Управління ── */}
       <div style={{ width: '340px', background: '#222', padding: '16px', overflowY: 'auto', borderRight: '2px solid #444' }}>
         <button onClick={() => navigate('/')} style={{ marginBottom: '14px' }}>

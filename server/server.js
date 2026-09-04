@@ -188,9 +188,20 @@ function mailer() {
 
 async function sendMail(to, subject, text) {
   const transport = mailer();
-  if (!transport) return false;
+  if (!transport) {
+    console.error('[mail] SMTP is not configured', {
+      host: Boolean(process.env.SMTP_HOST),
+      user: Boolean(process.env.SMTP_USER),
+      pass: Boolean(process.env.SMTP_PASS),
+    });
+    return false;
+  }
   try {
+    console.log('[mail] connecting', { host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: process.env.SMTP_SECURE === 'true', to });
+    await transport.verify();
+    console.log('[mail] SMTP connection verified');
     await transport.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, subject, text });
+    console.log('[mail] message sent');
     return true;
   } catch (err) {
     console.error('[mail] failed:', err.code || 'UNKNOWN', err.message);
@@ -301,6 +312,7 @@ app.post('/api/propose-news', async (req, res) => {
     return res.status(400).json({ error: 'title, authorNick, authorEmail and at least one image are required' });
   }
   try {
+    console.log('[propose-news] started', { title, authorNick, imageCount: images.length, hotspotCount: hotspots.length });
     let ids = { lastId: Math.floor(Date.now() / 1000) - 1 };
     let idsSha;
     try {
@@ -312,18 +324,23 @@ app.post('/api/propose-news', async (req, res) => {
       if (err.status !== 404 && !(err instanceof SyntaxError)) throw err;
     }
     const id = `news_${Math.max(Number(ids.lastId) || 0, Date.now()) + 1}`;
+    console.log('[propose-news] reserving id', { id });
     await writeGithubFile('custom-news', 'ids/news_ids.json', JSON.stringify({ lastId: Number(id.slice(5)) }, null, 2), `Reserve ${id}`, idsSha);
     const imageNames = images.map((_, index) => `${id}_p${index + 1}.png`);
     const news = { id, title: title.trim(), authorNick: authorNick.trim(), authorEmail: authorEmail.trim(), status: 'draft', createdAt: new Date().toISOString(), images: imageNames, likes: 0, dislikes: 0, comments: [], commentsCount: 0, reactionVoters: {} };
+    console.log('[propose-news] saving draft', { id });
     await writeGithubFile('custom-news', `drafts/${id}.json`, JSON.stringify(news, null, 2), `Create draft ${id}`);
+    console.log('[propose-news] saving images', { id, count: images.length });
     await Promise.all(images.map((data, index) => writeGithubFile('custom-news', `drafts/images/${imageNames[index]}`, Buffer.from(String(data).replace(/^data:image\/png;base64,/, ''), 'base64'), `Add ${imageNames[index]}`)));
     await writeGithubFile('news-data', `hotspots/${id}_hotspots.json`, JSON.stringify({ newsId: id, hotspots }, null, 2), `Add hotspots for ${id}`);
+    console.log('[propose-news] sending moderation email', { id, to: MODERATOR_EMAIL });
     const approve = `${API_PUBLIC_URL}/api/news/moderate?id=${id}&action=approve&token=${encodeURIComponent(MODERATION_SECRET)}`;
     const reject = `${API_PUBLIC_URL}/api/news/moderate?id=${id}&action=reject&token=${encodeURIComponent(MODERATION_SECRET)}`;
     const mailSent = await sendMail(MODERATOR_EMAIL, `Нова новина на модерацію: ${title}`, `ID: ${id}\nАвтор: ${authorNick} (${authorEmail})\n\nApprove: ${approve}\nReject: ${reject}`);
+    console.log('[propose-news] completed', { id, mailSent });
     res.status(201).json({ status: 'draft_created', id, mailSent });
   } catch (err) {
-    console.error('[propose-news]', err);
+    console.error('[propose-news] failed', { code: err.code, status: err.status, message: err.message, body: err.body });
     res.status(err.status || 502).json({ error: 'Failed to create news draft' });
   }
 });
