@@ -309,8 +309,8 @@ app.post('/api/propose-news', async (req, res) => {
     await writeGithubFile('news-data', `hotspots/${id}_hotspots.json`, JSON.stringify({ newsId: id, hotspots }, null, 2), `Add hotspots for ${id}`);
     const approve = `${API_PUBLIC_URL}/api/news/moderate?id=${id}&action=approve&token=${encodeURIComponent(MODERATION_SECRET)}`;
     const reject = `${API_PUBLIC_URL}/api/news/moderate?id=${id}&action=reject&token=${encodeURIComponent(MODERATION_SECRET)}`;
-    await sendMail(MODERATOR_EMAIL, `Нова новина на модерацію: ${title}`, `ID: ${id}\nАвтор: ${authorNick} (${authorEmail})\n\nApprove: ${approve}\nReject: ${reject}`);
-    res.status(201).json({ status: 'draft_created', id });
+    const mailSent = await sendMail(MODERATOR_EMAIL, `Нова новина на модерацію: ${title}`, `ID: ${id}\nАвтор: ${authorNick} (${authorEmail})\n\nApprove: ${approve}\nReject: ${reject}`);
+    res.status(201).json({ status: 'draft_created', id, mailSent });
   } catch (err) {
     console.error('[propose-news]', err);
     res.status(err.status || 502).json({ error: 'Failed to create news draft' });
