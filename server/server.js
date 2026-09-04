@@ -280,9 +280,17 @@ app.post('/api/propose-news', async (req, res) => {
   }
   try {
     let ids = { lastId: Math.floor(Date.now() / 1000) - 1 };
-    try { ids = JSON.parse((await readGithubFile('custom-news', 'ids/news_ids.json')).decoded); } catch (err) { if (err.status !== 404) throw err; }
+    let idsSha;
+    try {
+      const idsFile = await readGithubFile('custom-news', 'ids/news_ids.json');
+      idsSha = idsFile.sha;
+      const parsedIds = JSON.parse(idsFile.decoded || '{}');
+      if (parsedIds && typeof parsedIds === 'object') ids = parsedIds;
+    } catch (err) {
+      if (err.status !== 404 && !(err instanceof SyntaxError)) throw err;
+    }
     const id = `news_${Math.max(Number(ids.lastId) || 0, Math.floor(Date.now() / 1000) - 1) + 1}`;
-    await writeGithubFile('custom-news', 'ids/news_ids.json', JSON.stringify({ lastId: Number(id.slice(5)) }, null, 2), `Reserve ${id}`);
+    await writeGithubFile('custom-news', 'ids/news_ids.json', JSON.stringify({ lastId: Number(id.slice(5)) }, null, 2), `Reserve ${id}`, idsSha);
     const imageNames = images.map((_, index) => `${id}_p${index + 1}.png`);
     const news = { id, title: title.trim(), authorNick: authorNick.trim(), authorEmail: authorEmail.trim(), status: 'draft', createdAt: new Date().toISOString(), images: imageNames, likes: 0, dislikes: 0, comments: [], commentsCount: 0 };
     await writeGithubFile('custom-news', `drafts/${id}.json`, JSON.stringify(news, null, 2), `Create draft ${id}`);
