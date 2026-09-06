@@ -24,6 +24,110 @@ function saveProfile(profile) {
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
 }
 
+function FeedImageViewer({ image, title, onClose }) {
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const rootRef = useRef(null);
+  const pointersRef = useRef(new Map());
+  const zoomRef = useRef(zoom);
+  const dragRef = useRef(null);
+  const pinchRef = useRef(null);
+  zoomRef.current = zoom;
+
+  const resetView = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  useEffect(() => {
+    function onKey(event) {
+      if (event.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node) return undefined;
+    function onWheel(event) {
+      event.preventDefault();
+      const next = Math.min(4, Math.max(1, Math.round((zoomRef.current - event.deltaY * 0.001) * 20) / 20));
+      if (next === 1) setPan({ x: 0, y: 0 });
+      setZoom(next);
+    }
+    node.addEventListener('wheel', onWheel, { passive: false });
+    return () => node.removeEventListener('wheel', onWheel);
+  }, []);
+
+  function pointerDistance() {
+    const [first, second] = [...pointersRef.current.values()];
+    return Math.hypot(second.x - first.x, second.y - first.y);
+  }
+
+  function handlePointerDown(event) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointersRef.current.size === 2) {
+      pinchRef.current = { distance: pointerDistance(), zoom: zoomRef.current };
+      dragRef.current = null;
+    } else if (zoomRef.current > 1) {
+      dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+    }
+  }
+
+  function handlePointerMove(event) {
+    if (!pointersRef.current.has(event.pointerId)) return;
+    event.preventDefault();
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointersRef.current.size === 2 && pinchRef.current) {
+      const next = Math.min(4, Math.max(1, pinchRef.current.zoom * (pointerDistance() / pinchRef.current.distance)));
+      if (next === 1) setPan({ x: 0, y: 0 });
+      setZoom(next);
+      return;
+    }
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const dx = event.clientX - drag.x;
+    const dy = event.clientY - drag.y;
+    drag.x = event.clientX;
+    drag.y = event.clientY;
+    setPan((value) => ({ x: Math.round(value.x + dx), y: Math.round(value.y + dy) }));
+  }
+
+  function handlePointerEnd(event) {
+    pointersRef.current.delete(event.pointerId);
+    if (pointersRef.current.size < 2) pinchRef.current = null;
+    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  }
+
+  return (
+    <div className="image-viewer" ref={rootRef} role="dialog" aria-modal="true">
+      <div className="image-viewer-toolbar" onClick={(event) => event.stopPropagation()}>
+        <span>{Math.round(zoom * 100)}%</span>
+        <button type="button" onClick={resetView}>100%</button>
+        <button type="button" className="image-viewer-close" onClick={onClose}>x</button>
+      </div>
+      <div
+        className="image-viewer-stage"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
+        onDoubleClick={resetView}
+      >
+        <img src={image} alt={title} style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }} draggable="false" />
+      </div>
+    </div>
+  );
+}
+
 function NewBadge() {
   return <span className="new-badge">НОВИЙ</span>;
 }
@@ -206,7 +310,6 @@ function FeedItem({ item, onRefresh, visitorId, devMode }) {
   const [comment, setComment] = useState({ author: profile.author || '', authorEmail: profile.authorEmail || '', text: '' });
   const [busy, setBusy] = useState(false);
   const [viewerImage, setViewerImage] = useState(null);
-  const [viewerZoom, setViewerZoom] = useState(1);
 
   async function deleteNews() {
     if (!window.confirm(`Видалити опубліковану новину «${item.title}»?`)) return;
@@ -247,7 +350,7 @@ function FeedItem({ item, onRefresh, visitorId, devMode }) {
   return (
     <article className="feed-item" id={item.id}>
       <div className="feed-item-heading"><h2>{item.title}</h2><span>{item.author}</span></div>
-      <div className="feed-pages">{item.images.map((image, index) => <button className="feed-image-button" key={image} type="button" onClick={() => { setViewerImage(image); setViewerZoom(1); }}><img src={image} alt={`${item.title}, сторінка ${index + 1}`} loading="lazy" /></button>)}</div>
+      <div className="feed-pages">{item.images.map((image, index) => <button className="feed-image-button" key={image} type="button" onClick={() => setViewerImage(image)}><img src={image} alt={`${item.title}, сторінка ${index + 1}`} loading="lazy" /></button>)}</div>
       <div className="feed-actions">
         <button className={item.userReaction === 'like' ? 'active' : ''} disabled={busy || Boolean(item.userReaction)} onClick={() => react('like')}>👍 {item.likes}{item.userReaction === 'like' ? ' · Вже поставлено' : ''}</button>
         <button className={item.userReaction === 'dislike' ? 'active' : ''} disabled={busy || Boolean(item.userReaction)} onClick={() => react('dislike')}>👎 {item.dislikes}{item.userReaction === 'dislike' ? ' · Вже поставлено' : ''}</button>
@@ -261,7 +364,7 @@ function FeedItem({ item, onRefresh, visitorId, devMode }) {
         <input aria-label="Текст коментаря" placeholder="Текст коментаря" value={comment.text} onChange={(e) => setComment({ ...comment, text: e.target.value })} />
         <button disabled={busy} type="submit">Надіслати</button>
       </form>
-      {viewerImage && <div className="image-viewer" role="dialog" aria-modal="true" onClick={() => setViewerImage(null)}><div className="image-viewer-toolbar" onClick={(event) => event.stopPropagation()}><button type="button" onClick={() => setViewerZoom((zoom) => Math.max(0.5, zoom - 0.25))}>-</button><span>{Math.round(viewerZoom * 100)}%</span><button type="button" onClick={() => setViewerZoom((zoom) => Math.min(3, zoom + 0.25))}>+</button><button type="button" onClick={() => setViewerZoom(1)}>100%</button><button type="button" className="image-viewer-close" onClick={() => setViewerImage(null)}>x</button></div><img src={viewerImage} alt={item.title} style={{ transform: `scale(${viewerZoom})` }} onClick={(event) => event.stopPropagation()} /></div>}
+      {viewerImage && <FeedImageViewer image={viewerImage} title={item.title} onClose={() => setViewerImage(null)} />}
     </article>
   );
 }
@@ -286,7 +389,7 @@ function SideFeedWidget({ items, onSelect }) {
     <aside className="side-feed-widget" aria-label="Останні новини">
       <div className="side-feed-tab">Останні</div>
       <div className="side-feed-content">
-        <h2>Live feed</h2>
+        <h2>Стрічка новин</h2>
         {items.slice(0, 6).map((item) => <button key={item.id} onClick={() => onSelect(item.id)}><img src={item.images[0]} alt="" /><span>{item.title}</span></button>)}
         {!items.length && <p>Опублікованих новин поки немає.</p>}
       </div>
@@ -338,7 +441,7 @@ export function NewsHomePage({ feedPage = false }) {
       <main className="news-home-main">
         {!feedPage && <Carousel navigate={navigate} />}
 
-        {feedPage && <div className="feed-overlay"><section className="feed-section feed-page-section" id="feed"><div className="feed-section-heading"><span className="section-kicker">BORUKVA/LIVE</span><h1>Повний feed</h1>{devMode && <span className="dev-badge">DEV</span>}<div className="feed-heading-actions"><button onClick={loadFeed}>Оновити</button><button className="feed-close-button" onClick={() => navigate('/')}>Вийти</button></div></div>{feed.map((item) => <FeedItem key={item.id} item={item} visitorId={visitorId} devMode={devMode} onRefresh={loadFeed} />)}{!feed.length && <p className="feed-empty">Стрічка завантажується або ще не має опублікованих випусків.</p>}</section></div>}
+        {feedPage && <div className="feed-overlay"><section className="feed-section feed-page-section" id="feed"><div className="feed-section-heading"><span className="section-kicker"></span><h1>Повна стрічка</h1>{devMode && <span className="dev-badge">DEV</span>}<div className="feed-heading-actions"><button onClick={loadFeed}>Оновити</button><button className="feed-close-button" onClick={() => navigate('/')}>Вийти</button></div></div>{feed.map((item) => <FeedItem key={item.id} item={item} visitorId={visitorId} devMode={devMode} onRefresh={loadFeed} />)}{!feed.length && <p className="feed-empty">Стрічка завантажується або ще не має опублікованих випусків.</p>}</section></div>}
         {!feedPage && <SideFeedWidget items={feed} onSelect={() => navigate('/feed')} />}
 
         <div className="news-home-footer">

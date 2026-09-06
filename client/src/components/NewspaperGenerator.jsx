@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toPng } from 'html-to-image';
-import { HotspotDevLayer } from './HotspotLayer';
 import { assetUrl } from '../data/issues';
 
 const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://borukva-news-github-io.onrender.com').replace(/\/+$/, '');
@@ -32,7 +31,6 @@ export default function NewspaperGenerator() {
   ]);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [selectedElId, setSelectedElId] = useState(null);
-  const [hotspotMode, setHotspotMode] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -420,12 +418,6 @@ export default function NewspaperGenerator() {
               <input type="file" accept="image/*" onChange={addImageElement} style={{ display: 'none' }} />
             </label>
             <button onClick={addLineElement}>+ Лінія</button>
-            <button
-              onClick={() => setHotspotMode((enabled) => !enabled)}
-              style={{ background: hotspotMode ? '#007acc' : '#333' }}
-            >
-              {hotspotMode ? 'Завершити hotspot' : '+ Додати hotspot'}
-            </button>
           </div>
         </div>
 
@@ -638,14 +630,6 @@ export default function NewspaperGenerator() {
             );
           })}
 
-              {/* Шар Хотспотів */}
-              {hotspotMode && (
-            <HotspotDevLayer
-              hotspots={currentPage.hotspots}
-              imageSize={{ width: 600, height: 850 }}
-              onChange={(newSpots) => updateCurrentPage((p) => ({ ...p, hotspots: newSpots }))}
-            />
-              )}
             </div>
           </div>
         </div>

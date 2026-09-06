@@ -578,7 +578,7 @@ a {
   padding-bottom: 12px;
   margin-bottom: 22px;
 }
-.feed-section-heading h1 { margin: 0; font-family: 'Typewriter', serif; font-size: 34px; }
+.feed-section-heading h1 { margin: 0; font-family: 'Typewriter', serif; font-size: 34px; color: #fff; }
 .section-kicker { margin-right: auto; color: #ffffff; font-size: 11px; letter-spacing: 1px; }
 .feed-section-heading button, .feed-actions button, .comment-form button {
   border: 1px solid #191919;
@@ -608,8 +608,10 @@ a {
 .feed-delete-button { background: #b3261e !important; color: #fff !important; }
 .feed-heading-actions { display: flex; gap: 8px; margin-left: auto; }
 .feed-close-button { background: #b3261e !important; color: #fff !important; }
-.image-viewer { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 80px 24px 30px; background: rgba(0, 0, 0, 0.9); }
-.image-viewer > img { max-width: 92vw; max-height: 82vh; object-fit: contain; transition: transform 160ms ease; transform-origin: center; }
+.image-viewer { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 80px 24px 30px; background: rgba(0, 0, 0, 0.9); }
+.image-viewer-stage { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; cursor: grab; }
+.image-viewer-stage:active { cursor: grabbing; }
+.image-viewer-stage img { max-width: 92vw; max-height: 82vh; object-fit: contain; user-select: none; transition: transform 160ms ease; transform-origin: center; }
 .image-viewer-toolbar { position: fixed; top: 18px; right: 18px; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 8px; background: rgba(25, 25, 25, 0.95); color: #fff; }
 .image-viewer-toolbar button { min-width: 36px; min-height: 32px; border: 1px solid #aaa; background: #fffdf8; color: #111; }
 .image-viewer-toolbar span { min-width: 48px; text-align: center; }

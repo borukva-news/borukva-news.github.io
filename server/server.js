@@ -45,7 +45,7 @@ const MODERATION_SECRET = process.env.MODERATION_SECRET || '';
 const API_PUBLIC_URL = (process.env.API_PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
 const MODERATOR_EMAIL = process.env.MODERATOR_EMAIL || 'borukvanews@gmail.com';
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const RESEND_FROM = process.env.RESEND_FROM || process.env.SMTP_FROM || 'onboarding@resend.dev';
+const RESEND_FROM = process.env.RESEND_FROM || process.env.SMTP_FROM || '';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://borukva-news.github.io';
 
@@ -237,12 +237,21 @@ function moderationEmailHtml({ id, author, title, approveUrl, rejectUrl }) {
 
 async function sendMail(to, subject, text, html) {
   if (RESEND_API_KEY) {
+    if (!RESEND_FROM) {
+      console.error('[mail] RESEND_FROM is not configured', { to, subject });
+      return { sent: false, error: 'from_not_configured' };
+    }
     try {
-      console.log('[mail] sending through Resend HTTPS', { to, from: RESEND_FROM });
+      const recipient = String(to || '').trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+        console.error('[mail] invalid recipient address', { to, subject });
+        return { sent: false, error: 'invalid_recipient' };
+      }
+      console.log('[mail] sending through Resend HTTPS', { to: recipient, from: RESEND_FROM, subject });
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: RESEND_FROM, to: [to], subject, text, ...(html ? { html } : {}) }),
+        body: JSON.stringify({ from: RESEND_FROM, to: [recipient], subject, text, ...(html ? { html } : {}) }),
       });
       const body = await response.text();
       if (!response.ok) {
@@ -454,7 +463,8 @@ app.get('/api/news/moderate', async (req, res) => {
     const authorMailResult = await sendMail(
       draft.authorEmail,
       `Новину ${action === 'approve' ? 'опубліковано' : 'відхилено'}`,
-      `Випуск «${draft.title}» (${id}) ${action === 'approve' ? 'опубліковано.' : 'відхилено.'}`
+      `Випуск «${draft.title}» (${id}) ${action === 'approve' ? 'опубліковано.' : 'відхилено.'}`,
+      `<p>Випуск «${escapeHtml(draft.title)}» (${escapeHtml(id)}) ${action === 'approve' ? 'опубліковано.' : 'відхилено.'}</p>`
     );
     console.log('[moderate] author notification result', {
       id,
