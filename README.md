@@ -17,22 +17,23 @@ Flutter-застосунку [`borukvanews.github.io`](https://github.com/PsProf
 
 ## Відповідність екранів (Dart → маршрут → React-компонент)
 
-| Маршрут       | Оригінал (lib/*.dart)        | React-сторінка                          |
-|---------------|-------------------------------|------------------------------------------|
-| `/`           | `news_home.dart`               | `pages/NewsHomePage.jsx`                  |
-| `/RULE34`     | `main.dart` (`MainScreen`)     | `pages/MainScreen.jsx`                    |
-| `/empty`      | `empty_screen.dart`            | `pages/EmptyScreen.jsx`                   |
-| `/atRmklps`   | `first_screen.dart`            | `pages/IssuePage.jsx` (`09_02-14_02`)     |
-| `/qizmvUxp`   | `second_screen.dart`           | `pages/IssuePage.jsx` (`15_02-21_02`)     |
-| `/pLxqnrvt`   | `third_screen.dart`            | `pages/IssuePage.jsx` (`22_02-28_02`)     |
-| `/qbE34klm`   | `kchbnk.dart`                  | `pages/IssuePage.jsx` (`kchbnk`)          |
-| `/x9t2q7wb`   | `fourth_screen.dart`           | `pages/IssuePage.jsx` (`01_03-14_03`)     |
-| `/inter1`     | `interview_artemida.dart`      | `pages/IssuePage.jsx` (`inter1`, YouTube) |
-| `/k7m2q9vz`   | `fifth_screen.dart`            | `pages/IssuePage.jsx` (`15_03-29_03`)     |
-| `/l9bf3n0p`   | `sixth_screen.dart` (UV)       | `pages/UvIssuePage.jsx`                   |
+| Маршрут     | Оригінал (lib/\*.dart)     | React-сторінка                            |
+| ----------- | -------------------------- | ----------------------------------------- |
+| `/`         | `news_home.dart`           | `pages/NewsHomePage.jsx`                  |
+| `/RULE34`   | `main.dart` (`MainScreen`) | `pages/MainScreen.jsx`                    |
+| `/empty`    | `empty_screen.dart`        | `pages/EmptyScreen.jsx`                   |
+| `/atRmklps` | `first_screen.dart`        | `pages/IssuePage.jsx` (`09_02-14_02`)     |
+| `/qizmvUxp` | `second_screen.dart`       | `pages/IssuePage.jsx` (`15_02-21_02`)     |
+| `/pLxqnrvt` | `third_screen.dart`        | `pages/IssuePage.jsx` (`22_02-28_02`)     |
+| `/qbE34klm` | `kchbnk.dart`              | `pages/IssuePage.jsx` (`kchbnk`)          |
+| `/x9t2q7wb` | `fourth_screen.dart`       | `pages/IssuePage.jsx` (`01_03-14_03`)     |
+| `/inter1`   | `interview_artemida.dart`  | `pages/IssuePage.jsx` (`inter1`, YouTube) |
+| `/k7m2q9vz` | `fifth_screen.dart`        | `pages/IssuePage.jsx` (`15_03-29_03`)     |
+| `/l9bf3n0p` | `sixth_screen.dart` (UV)   | `pages/UvIssuePage.jsx`                   |
 
 Спільна логіка з `hotspot_shared.dart` та `uv_caurosel_screen.dart` перенесена
 у:
+
 - `client/src/components/CarouselScreen.jsx` — базовий переглядач сторінок
 - `client/src/components/UvCarouselScreen.jsx` — версія з "ультрафіолетовим ліхтариком"
 - `client/src/components/HotspotLayer.jsx` — клікабельні зони (перегляд + прихований редактор)
@@ -74,6 +75,20 @@ npm install
 Без нього застосунок працюватиме, але хотспоти зберігатимуться лише
 локально в браузері (`localStorage`), без синхронізації з GitHub.
 
+Для листів на Render додайте змінні середовища сервера:
+
+```text
+RESEND_API_KEY=...
+RESEND_FROM=verified-sender@your-domain.example
+MODERATOR_EMAIL=адреса-модератора@example.com
+API_PUBLIC_URL=https://borukva-news-github-io.onrender.com
+MODERATION_SECRET=довгий-випадковий-рядок
+```
+
+`RESEND_FROM` має бути підтверджено в Resend. Після додавання змінних
+перезапустіть або redeploy сервіс на Render. У логах сервера мають з'явитися
+`[mail] Resend message sent` та `[moderate] author notification result`.
+
 ## 3. Зберіть клієнт і запустіть
 
 ```bash
@@ -103,6 +118,7 @@ cd client && npm run dev   # http://localhost:5173, проксіює /api і /as
 референсному скріншоті "Профільник").
 
 **Як користуватись:**
+
 1. Відкрийте `/skins` (посилання "Картки персонажів" у меню "Інструменти" на
    головній сторінці)
 2. Завантажте файл `.bbmodel` (експортований з [Blockbench](https://www.blockbench.net/))
@@ -115,6 +131,7 @@ cd client && npm run dev   # http://localhost:5173, проксіює /api і /as
    слайдер швидкості анімації та показ пивотів кісток
 
 **Технічна реалізація** (`client/src/lib/bbmodel.js`):
+
 - Парсер `.bbmodel`: будує ієрархію кісток/пивотів з `outliner`, геометрію
   кубів з `elements` (per-face UV-мапінг на текстуру, або класичне
   Minecraft-розгортання для елементів без `faces`)
@@ -135,9 +152,11 @@ cd client && npm run dev   # http://localhost:5173, проксіює /api і /as
 Виправлення: зсув між origin-ами тепер обертається на **обернений
 кватерніон акумульованого світового повороту батька**, перш ніж стати
 `.position` дочірнього обʼєкта:
+
 ```
 localPos = inverse(parentWorldQuaternion) * (childOriginWorld - parentOriginWorld)
 ```
+
 Перевірено на синтетичному прикладі (кістка, повернена на 45°, з дитиною
 на відстані 3 одиниці): стара формула давала дитині позицію `(2.12, 10, -2.12)`
 замість правильної `(3, 10, 0)` — помітний зсув. Нова формула дає точний
@@ -180,7 +199,6 @@ inline-поля для файлів старого формату. Переві�
 потреби окремо завантажувати PNG. У вашому файлі всі 4 варіанти голови
 (різні uuid, texture-індекси 0–3) коректно резолвляться кожен у свою
 текстуру.
-
 
 - Усі 12 екранів/маршрутів, з тими самими шляхами й порядком сторінок
 - Каруселі газетних сторінок з навігацією стрілками/клавіатурою

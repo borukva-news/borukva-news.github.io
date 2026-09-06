@@ -185,6 +185,7 @@ export default function NewspaperGenerator() {
       content: 'Текст новини...',
       isBold: false,
       isItalic: false,
+      textAlign: 'left',
       fontSize: 16,
       left: 50,
       top: 100,
@@ -247,7 +248,15 @@ export default function NewspaperGenerator() {
   // ── Генерація PNG картинки ──
   const capturePageImage = async () => {
     if (!pageRef.current) return null;
-    return await toPng(pageRef.current, { cacheBust: true, width: 600, height: 850, pixelRatio: 2 });
+    const images = [...pageRef.current.querySelectorAll('img')];
+    await Promise.all(images.map((image) => {
+      if (image.complete) return Promise.resolve(image.decode ? image.decode() : undefined).catch(() => undefined);
+      return new Promise((resolve) => {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+      });
+    }));
+    return await toPng(pageRef.current, { cacheBust: false, width: 600, height: 850, pixelRatio: 2 });
   };
 
   const waitForPageRender = () => new Promise((resolve) => {
@@ -473,6 +482,25 @@ export default function NewspaperGenerator() {
                 К
               </button>
             </div>
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ fontSize: '12px', marginBottom: '6px' }}>Вирівнювання:</div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {['left', 'center', 'right'].map((align) => (
+                  <button
+                    key={align}
+                    type="button"
+                    onClick={() => updateSelectedElement('textAlign', align)}
+                    style={{
+                      flex: 1,
+                      background: selectedElement.textAlign === align ? '#007acc' : '#333',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {align === 'left' ? 'Ліво' : align === 'center' ? 'Центр' : 'Право'}
+                  </button>
+                ))}
+              </div>
+            </div>
             <label style={{ display: 'block', fontSize: '12px', marginTop: '10px' }}>
               Розмір шрифту: {selectedElement.fontSize}px
               <input type="range" min="8" max="96" step="1" value={selectedElement.fontSize} onChange={(e) => updateSelectedElement('fontSize', Number(e.target.value))} style={{ width: '100%' }} />
@@ -582,7 +610,18 @@ export default function NewspaperGenerator() {
                   </button>
                 )}
                 {el.type === 'text' && (
-                  <div style={{ width: '100%', height: '100%', fontWeight: el.isBold ? 'bold' : 'normal', fontStyle: el.isItalic ? 'italic' : 'normal', fontSize: `${el.fontSize}px`, whiteSpace: 'pre-wrap', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      fontWeight: el.isBold ? 'bold' : 'normal',
+                      fontStyle: el.isItalic ? 'italic' : 'normal',
+                      fontSize: `${el.fontSize}px`,
+                      textAlign: el.textAlign || 'left',
+                      whiteSpace: 'pre-wrap',
+                      overflow: 'hidden',
+                    }}
+                  >
                     {el.content}
                   </div>
                 )}

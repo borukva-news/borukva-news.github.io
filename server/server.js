@@ -431,7 +431,19 @@ app.get('/api/news/moderate', async (req, res) => {
     await removeGithubFile('custom-news', `drafts/${id}.json`, `${action} ${id}`);
     await Promise.all(draft.images.map((name) => removeGithubFile('custom-news', `drafts/images/${name}`, `${action} ${name}`).catch((err) => { if (err.status !== 404) throw err; })));
     if (action === 'reject') await removeGithubFile('news-data', `hotspots/${id}_hotspots.json`, `Reject hotspots for ${id}`).catch((err) => { if (err.status !== 404) throw err; });
-    await sendMail(draft.authorEmail, `Новину ${action === 'approve' ? 'опубліковано' : 'відхилено'}`, `Випуск «${draft.title}» (${id}) ${action === 'approve' ? 'опубліковано.' : 'відхилено.'}`);
+    const authorMailResult = await sendMail(
+      draft.authorEmail,
+      `Новину ${action === 'approve' ? 'опубліковано' : 'відхилено'}`,
+      `Випуск «${draft.title}» (${id}) ${action === 'approve' ? 'опубліковано.' : 'відхилено.'}`
+    );
+    console.log('[moderate] author notification result', {
+      id,
+      action,
+      to: draft.authorEmail,
+      mailSent: authorMailResult.sent,
+      mailError: authorMailResult.error,
+      mailCode: authorMailResult.code || null,
+    });
     res.type('html').send(`<h1>${action === 'approve' ? 'Новину опубліковано' : 'Новину відхилено'}</h1><p>${draft.title}</p>`);
   } catch (err) { console.error('[moderate]', err); res.status(err.status || 502).send('Moderation failed'); }
 });

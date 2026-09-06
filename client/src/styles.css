@@ -79,6 +79,11 @@ a {
 .generator-page-stage {
   position: relative;
   flex: 0 0 auto;
+  margin: 0 auto;
+}
+.generator-canvas {
+  align-items: flex-start !important;
+  padding-top: 70px !important;
 }
 .generator-page-transform {
   position: relative;
@@ -105,10 +110,12 @@ a {
   background: #8e1d17;
 }
 .generator-zoom-controls {
-  position: absolute;
-  top: -42px;
-  left: 0;
-  z-index: 5;
+  position: fixed;
+  top: auto;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -712,11 +719,9 @@ a {
     overflow-x: auto !important;
     padding: 66px 10px 20px !important;
   }
-  .generator-page-stage {
-    margin: 0 auto;
-  }
   .generator-zoom-controls {
-    top: 10px;
+    top: auto;
+    bottom: 14px;
     left: 50%;
     transform: translateX(-50%);
   }

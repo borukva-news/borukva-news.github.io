@@ -317,6 +317,10 @@ export function NewsHomePage({ feedPage = false }) {
           ))}
         </nav>
 
+        <button className="publish-news-btn news-home-publish-btn desktop-only" onClick={() => navigate('/generator')}>
+          Опублікувати новину <span aria-hidden="true">+</span>
+        </button>
+
         <button className="play-server-btn desktop-only" onClick={() => window.open(SERVER_WIKI_URL, '_blank')}>
           Грати на сервері
         </button>
