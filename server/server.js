@@ -135,6 +135,22 @@ async function readGithubFile(repo, file) {
   };
 }
 
+async function readGithubBinary(repo, file) {
+  const metadata = await githubRequest(repo, file);
+  if (metadata.content) return Buffer.from(metadata.content.replace(/\s/g, ''), 'base64');
+  if (!metadata.download_url) throw new Error(`GitHub file has no content URL: ${file}`);
+  const config = repositoryConfig(repo);
+  const response = await fetch(metadata.download_url, {
+    headers: { ...ghHeaders(config.token), Accept: 'application/octet-stream' },
+  });
+  if (!response.ok) {
+    const error = new Error(`GitHub download failed with ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return Buffer.from(await response.arrayBuffer());
+}
+
 async function writeGithubFile(repo, file, content, message, sha) {
   return githubRequest(repo, file, {
     method: 'PUT',
@@ -424,9 +440,13 @@ app.get('/api/news/moderate', async (req, res) => {
   try {
     const draft = parseNews(JSON.parse((await readGithubFile('custom-news', `drafts/${id}.json`)).decoded));
     if (action === 'approve') {
+      await Promise.all(draft.images.map(async (name) => {
+        const content = await readGithubBinary('custom-news', `drafts/images/${name}`);
+        if (!content.length) throw new Error(`Cannot publish empty image: ${name}`);
+        return writeGithubFile('custom-news', `published/images/${name}`, content, `Publish ${name}`);
+      }));
       const published = { ...draft, status: 'published' };
       await writeGithubFile('custom-news', `published/${id}.json`, JSON.stringify(published, null, 2), `Publish ${id}`);
-      await Promise.all(draft.images.map(async (name) => { const file = await githubRequest('custom-news', `drafts/images/${name}`); return writeGithubFile('custom-news', `published/images/${name}`, Buffer.from(file.content.replace(/\s/g, ''), 'base64'), `Publish ${name}`); }));
     }
     await removeGithubFile('custom-news', `drafts/${id}.json`, `${action} ${id}`);
     await Promise.all(draft.images.map((name) => removeGithubFile('custom-news', `drafts/images/${name}`, `${action} ${name}`).catch((err) => { if (err.status !== 404) throw err; })));
@@ -470,8 +490,9 @@ app.get('/api/news/image/:folder/:filename', async (req, res) => {
   const { folder, filename } = req.params;
   if (!['published', 'drafts'].includes(folder) || !/^[\w.-]+\.png$/i.test(filename)) return res.status(400).json({ error: 'Invalid image path' });
   try {
-    const file = await githubRequest('custom-news', `${folder}/images/${filename}`);
-    res.type('png').send(Buffer.from(file.content.replace(/\s/g, ''), 'base64'));
+    const content = await readGithubBinary('custom-news', `${folder}/images/${filename}`);
+    if (!content.length) return res.status(404).json({ error: 'Image is empty' });
+    res.type('png').send(content);
   } catch (err) {
     res.status(err.status || 502).json({ error: 'Failed to load news image' });
   }

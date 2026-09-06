@@ -579,7 +579,7 @@ a {
   margin-bottom: 22px;
 }
 .feed-section-heading h1 { margin: 0; font-family: 'Typewriter', serif; font-size: 34px; }
-.section-kicker { margin-right: auto; color: #b3261e; font-size: 11px; letter-spacing: 1px; }
+.section-kicker { margin-right: auto; color: #ffffff; font-size: 11px; letter-spacing: 1px; }
 .feed-section-heading button, .feed-actions button, .comment-form button {
   border: 1px solid #191919;
   background: #f5eee3;

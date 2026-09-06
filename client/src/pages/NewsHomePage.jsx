@@ -338,7 +338,7 @@ export function NewsHomePage({ feedPage = false }) {
       <main className="news-home-main">
         {!feedPage && <Carousel navigate={navigate} />}
 
-        {feedPage && <div className="feed-overlay"><section className="feed-section feed-page-section" id="feed"><div className="feed-section-heading"><span className="section-kicker">BORUKVA / LIVE</span><h1>Повний feed</h1>{devMode && <span className="dev-badge">DEV</span>}<div className="feed-heading-actions"><button onClick={loadFeed}>Оновити</button><button className="feed-close-button" onClick={() => navigate('/')}>Вийти</button></div></div>{feed.map((item) => <FeedItem key={item.id} item={item} visitorId={visitorId} devMode={devMode} onRefresh={loadFeed} />)}{!feed.length && <p className="feed-empty">Стрічка завантажується або ще не має опублікованих випусків.</p>}</section></div>}
+        {feedPage && <div className="feed-overlay"><section className="feed-section feed-page-section" id="feed"><div className="feed-section-heading"><span className="section-kicker">BORUKVA/LIVE</span><h1>Повний feed</h1>{devMode && <span className="dev-badge">DEV</span>}<div className="feed-heading-actions"><button onClick={loadFeed}>Оновити</button><button className="feed-close-button" onClick={() => navigate('/')}>Вийти</button></div></div>{feed.map((item) => <FeedItem key={item.id} item={item} visitorId={visitorId} devMode={devMode} onRefresh={loadFeed} />)}{!feed.length && <p className="feed-empty">Стрічка завантажується або ще не має опублікованих випусків.</p>}</section></div>}
         {!feedPage && <SideFeedWidget items={feed} onSelect={() => navigate('/feed')} />}
 
         <div className="news-home-footer">
