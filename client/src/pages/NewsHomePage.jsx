@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { DROPDOWN_MENUS, HOME_CAROUSEL_ITEMS, SERVER_WIKI_URL, BG_MONOCHROME_ASSET } from '../data/issues';
 
 function NewBadge() {
@@ -47,7 +48,7 @@ function Dropdown({ title, items, navigate }) {
   );
 }
 
-function MobileMenu({ navigate }) {
+function MobileMenu({ navigate, onPublishClick }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -66,15 +67,12 @@ function MobileMenu({ navigate }) {
       </button>
       {open && (
         <div className="mobile-menu-panel">
-          <button
-            className="mobile-menu-publish"
-            onClick={() => {
-              setOpen(false);
-              navigate('/generator');
-            }}
-          >
-            <span aria-hidden="true">+</span>
-            Опублікувати новину
+          <button className="mobile-menu-publish" onClick={() => {
+            setOpen(false);
+            onPublishClick();
+          }}>
+            <span>Опублікувати новину</span>
+            <ArrowRight size={14} aria-hidden="true" />
           </button>
           {Object.entries(DROPDOWN_MENUS).map(([category, items]) => (
             <div key={category} className="mobile-menu-category">
@@ -181,6 +179,16 @@ function Carousel({ navigate }) {
 
 export function NewsHomePage() {
   const navigate = useNavigate();
+  const [publishNotice, setPublishNotice] = useState(false);
+  const publishNoticeTimer = useRef(null);
+
+  useEffect(() => () => window.clearTimeout(publishNoticeTimer.current), []);
+
+  function showPublishNotice() {
+    setPublishNotice(true);
+    window.clearTimeout(publishNoticeTimer.current);
+    publishNoticeTimer.current = window.setTimeout(() => setPublishNotice(false), 3000);
+  }
 
   return (
     <div className="news-home">
@@ -195,8 +203,9 @@ export function NewsHomePage() {
           ))}
         </nav>
 
-        <button className="publish-news-btn news-home-publish-btn desktop-only" onClick={() => navigate('/generator')}>
-          Опублікувати новину <span aria-hidden="true">+</span>
+        <button className="publish-news-btn news-home-publish-btn desktop-only" onClick={showPublishNotice}>
+          <span>Опублікувати новину</span>
+          <ArrowRight size={14} aria-hidden="true" />
         </button>
 
         <button className="play-server-btn desktop-only" onClick={() => window.open(SERVER_WIKI_URL, '_blank')}>
@@ -204,9 +213,15 @@ export function NewsHomePage() {
         </button>
 
         <div className="mobile-only">
-          <MobileMenu navigate={navigate} />
+          <MobileMenu navigate={navigate} onPublishClick={showPublishNotice} />
         </div>
       </header>
+
+      {publishNotice && (
+        <div className="publish-news-toast" role="status" aria-live="polite">
+          Публікація новин тимчасово недоступна
+        </div>
+      )}
 
       <main className="news-home-main">
         <Carousel navigate={navigate} />
