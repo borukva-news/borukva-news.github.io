@@ -52,7 +52,7 @@ export const CHARACTERS = [
   {
     id: 'ps-profi',
     name: 'PS_PROFI',
-    avatarPath: `assets/skins/ps-profi.png`,
+    avatarPath: `assets/skin-avatar/ps-profi.png`,
     rarity: 'Журналіст',
     tags: ['країна:Телос Докіме', 'країна:Гузняни', 'відзначився:ЖУРНАЛІСТ', 'сезон:Сезон: 6', 'сезон:Сезон: 67' , 'сезон:Сезон 7', 'країна:КОКС'],
     animationFile: 'model psprofi.bbmodel',
@@ -74,7 +74,7 @@ export const CHARACTERS = [
   {
     id: 'fransys-dikiy',
     name: 'FransysDikiy',
-    avatarPath: `assets/skins/fransys-dikiy.png`,
+    avatarPath: `assets/skin-avatar/fransys-dikiy.png`,
     rarity: 'Меценат',
     tags: ['країна:С.Р.А.К.А.', 'країна:Сракоміда', 'відзначився:МЕЦЕНАТ', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Досягнокрай'],
     animationFile: 'model fransysdikiy.bbmodel',
@@ -95,7 +95,7 @@ export const CHARACTERS = [
   {
     id: 'dornanesko',
     name: 'Dornanesko',
-    avatarPath: `assets/skins/dornanesko.png`,
+    avatarPath: `assets/skin-avatar/dornanesko.png`,
     rarity: 'Гравець',
     tags: ['країна:Задунайська Січ', 'країна:НІК',  'відзначився:ГРАВЕЦЬ', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Бака-Троєщина'],
     animationFile: 'model dornanesko.bbmodel',
@@ -117,7 +117,7 @@ export const CHARACTERS = [
   {
     id: 'miha',
     name: 'M_I_H_A_2_1',
-    avatarPath: `assets/skins/miha.png`,
+    avatarPath: `assets/skin-avatar/miha.png`,
     rarity: 'Гравець',
     tags: ['країна:Керосинівка', 'країна:Монако', 'країна:НІК', 'відзначився:МЕЛОЧЬ ПУЗАТА', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Западенці'],
     animationFile: 'model miha.bbmodel',
@@ -139,7 +139,7 @@ export const CHARACTERS = [
   {
     id: 'maliyo',
     name: 'Maliyo',
-    avatarPath: `assets/skins/maliyo.png`,
+    avatarPath: `assets/skin-avatar/maliyo.png`,
     rarity: 'Недоторканий (ютубер)',
     tags: ['компанія:ВМВ', 'відзначився:ЮТУБЕР', 'сезон:Сезон: 6'],
     animationFile: 'model maliyo2.bbmodel',
@@ -162,7 +162,7 @@ export const CHARACTERS = [
   {
     id: 'kruchka',
     name: 'Kruchka',
-    avatarPath: `assets/skins/kruchka.png`,
+    avatarPath: `assets/skin-avatar/kruchka.png`,
     rarity: 'Гравець',
     tags: ['країна:С.Р.А.К.А.', 'відзначився:ГРАВЕЦЬ', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Хапонія'],
     animationFile: 'model kruchka.bbmodel',
@@ -185,7 +185,8 @@ export const CHARACTERS = [
   {
     id: 'quod',
     name: 'Quod',
-    avatarPath: `assets/skins/quod.png`,
+    known: 'Quodie',
+    avatarPath: `assets/skin-avatar/quod.png`,
     rarity: 'Гравець',  
     tags: ['відзначився:ОЛД', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Хапонія', 'країна:С.Р.А.К.А.', 'країна:Сракоміда'],
     animationFile: 'model quod.bbmodel',
@@ -207,7 +208,8 @@ export const CHARACTERS = [
   {
     id: 'patoki',
     name: 'ratskui',
-    avatarPath: `assets/skins/patoki.png`,
+    known: 'patoki',
+    avatarPath: `assets/skin-avatar/patoki.png`,
     rarity: 'Адмін',  
     tags: [ 'відзначився:ОЛД', 'відзначився:АДМІН', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Постмодернія', 'країна:67 Русь', 'країна:Западенці'],
     animationFile: 'model patoki.bbmodel',
@@ -229,7 +231,7 @@ export const CHARACTERS = [
   {
     id: 'orestborykva',
     name: 'OrestBorykva',
-    avatarPath: `assets/skins/orestborykva.png`,
+    avatarPath: `assets/skin-avatar/orestborykva.png`,
     rarity: 'Власник',  
     tags: [ 'відзначився:ВЛАСНИК', 'сезон:Сезон: 6',  'країна:Керосинівка'],
     animationFile: 'model orest.bbmodel',
@@ -251,7 +253,8 @@ export const CHARACTERS = [
   {
     id: 'papa-svin',
     name: 'PapaSvin1',
-    avatarPath: `assets/skins/papasvin.png`,
+    known: 'твінки: Twink, BarakObama, Kolya_UA',
+    avatarPath: `assets/skin-avatar/papasvin.png`,
     rarity: 'Гравець',  
     tags: [ 'відзначився:ГРАВЕЦЬ', 'сезон:Сезон: 6', 'сезон:Сезон 7', 'країна:Кримська Долина', 'країна:Досягнoкрай' ],
     animationFile: 'model papasvin.bbmodel',
@@ -273,7 +276,7 @@ export const CHARACTERS = [
   {
     id: 'griag',
     name: 'griag_',
-    avatarPath: `assets/skins/griag.png`,
+    avatarPath: `assets/skin-avatar/griag.png`,
     rarity: 'Гравець',  
     tags: [ 'відзначився:ГРАВЕЦЬ', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Грягівка', 'країна:Бака-Троєщина' ],
     animationFile: 'model griag.bbmodel',
@@ -295,7 +298,7 @@ export const CHARACTERS = [
   {
     id: 'teto',
     name: 'Teto_____',
-    avatarPath: `assets/skins/teto.png`,
+    avatarPath: `assets/skin-avatar/teto.png`,
     rarity: 'Адмін',  
     tags: [ 'відзначився:АДМІН', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Бака-Троєщина' ],
     animationFile: 'model teto.bbmodel',
@@ -305,7 +308,12 @@ export const CHARACTERS = [
         id: 'original',
         name: 'Оригінал',
         overrides: buildEmbeddedOverrides(tetoModel),
-      }
+      },
+      {
+        id: 'teto2',
+        name: 'Тето 2',
+        overrides: buildEmbeddedOverrides(tetoModel),
+    }
     ],
     characteristics: [
       'Гравець 7 сезону Борукви.',
@@ -314,26 +322,509 @@ export const CHARACTERS = [
       'Поточна Країна: Бака-Троєщина',
     ],
   },
+    {
+    id: 'skeker',
+    name: 'Skeker',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+    
+    {
+    id: 'garodogtos',
+    name: 'Garodogtos',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+    
+    {
+    id: 'daboorl1e',
+    name: 'daboorl1e',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'somyk',
+    name: 'somyk',
+    known: 'rybosoma',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'kygylo',
+    name: 'Kygylo',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'murrrly',
+    name: 'Murrrly',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'judas',
+    name: 'Judas',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'aikofromhell',
+    name: 'AikoFromHell',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'reign3r',
+    name: '_Reign3r_',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'wi9ster1a',
+    name: 'wi9ster1a',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'memento-mori',
+    name: 'MEMENTO_MORI',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'temari-nya',
+    name: 'Temari_nya',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'vit2005',
+    name: 'Vit2005',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'meowingcat25',
+    name: 'MeowingCat25',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'zefir',
+    name: 'Zefir',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'spysock',
+    name: 'SpySock',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'secretblog',
+    name: 'secretblog',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'nitramtkach',
+    name: 'NitramTkach',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'bhdm',
+    name: 'Bhdm',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'kladbm',
+    name: 'Kladbm',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+        
+    {
+    id: 'dimavh',
+    name: 'dimavh_',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
   //   {
   //   id: 'none',
   //   name: 'placeholder',
-  //   avatarPath: `assets/skins/teto.png`,
-  //   rarity: 'Адмін',  
-  //   tags: [ 'відзначився:АДМІН', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Бака-Троєщина' ],
-  //   animationFile: 'model teto.bbmodel',
-  //   model: tetoModel,
+  //   avatarPath: `assets/skin-avatar/none.png`,
+  //   rarity: '???',  
+  //   tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+  //   animationFile: 'model placeholder.bbmodel',
+  //   model: placeholderModel,
   //   skins: [  
   //     {
   //       id: 'original',
   //       name: 'Оригінал',
-  //       overrides: buildEmbeddedOverrides(tetoModel),
+  //       overrides: buildEmbeddedOverrides(placeholderModel),
   //     }
   //   ],
   //   characteristics: [
   //     'Гравець 7 сезону Борукви.',
-  //     'quote{"новенький скидай труси"}\n',
-  //     'Адмін, крутий ПВПшер, гриб на всю голову\n',
-  //     'Поточна Країна: Бака-Троєщина',
+  //     'quote{"???"}\n',
+  //     '???\n',
+  //     'Поточна Країна: ???',
   //   ],
   // },
 ];

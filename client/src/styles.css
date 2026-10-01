@@ -1417,6 +1417,13 @@ a {
   gap: 14px;
   margin-bottom: 24px;
 }
+.characters-search-control {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .characters-search {
   min-width: 0;
   flex: 1;
@@ -1434,6 +1441,54 @@ a {
   position: relative;
   min-width: 0;
   flex: 1;
+}
+.characters-filter-help {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 50%;
+  background: rgba(13, 27, 61, 0.78);
+  color: #fff;
+  cursor: help;
+}
+.characters-filter-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: -8px;
+  z-index: 20;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 32px));
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 8px;
+  background: #0d1b3d;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 140ms ease, transform 140ms ease, visibility 140ms;
+  pointer-events: none;
+}
+.characters-filter-help:hover .characters-filter-tooltip,
+.characters-filter-help:focus-visible .characters-filter-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.characters-filter-help:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 .characters-search-suggestions {
   position: absolute;

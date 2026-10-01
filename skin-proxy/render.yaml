@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: borukva-skin-proxy
+    runtime: node
+    rootDir: skin-proxy
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: LOG_LEVEL
+        value: info

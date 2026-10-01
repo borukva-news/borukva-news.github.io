@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Search, UserRound } from 'lucide-react';
+import { ChevronLeft, CircleHelp, Search, UserRound } from 'lucide-react';
 import { BG_BLUE_ASSET } from '../data/issues';
 import { CHARACTERS, sortCharacters } from '../data/characters';
 
@@ -10,7 +10,7 @@ function getTagLabel(tag) {
 
 export function CharacterCatalogPage() {
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState('-відзначився:???');
   const [sortOrder, setSortOrder] = useState('name-asc');
   const [searchFocused, setSearchFocused] = useState(false);
 
@@ -20,23 +20,42 @@ export function CharacterCatalogPage() {
   ), []);
 
   const matchingSuggestions = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase();
-    return tagSuggestions.filter((tag) => tag.toLocaleLowerCase().includes(normalizedQuery));
+    const trimmedQuery = query.trimEnd().toLocaleLowerCase();
+    const negativeStart = trimmedQuery.lastIndexOf(' -');
+    const activeFilter = negativeStart >= 0
+      ? trimmedQuery.slice(negativeStart + 2)
+      : trimmedQuery.startsWith('-')
+        ? trimmedQuery.slice(1)
+        : trimmedQuery;
+    return tagSuggestions.filter((tag) => tag.toLocaleLowerCase().includes(activeFilter));
   }, [query, tagSuggestions]);
 
   function completeSearch(suggestion) {
     if (!suggestion) return;
-    setQuery(suggestion);
+    const trimmedQuery = query.trimEnd();
+    const negativeStart = trimmedQuery.lastIndexOf(' -');
+    if (negativeStart >= 0) {
+      setQuery(`${trimmedQuery.slice(0, negativeStart + 2)}${suggestion}`);
+    } else if (trimmedQuery.startsWith('-')) {
+      setQuery(`-${suggestion}`);
+    } else if (query.length > trimmedQuery.length) {
+      setQuery(`${trimmedQuery} ${suggestion}`.trim());
+    } else {
+      setQuery(suggestion);
+    }
     setSearchFocused(false);
   }
 
   const visibleCharacters = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
+    const [positiveFilter, ...excludedFilters] = normalizedQuery.startsWith('-')
+      ? ['', ...normalizedQuery.slice(1).split(/\s+-/)]
+      : normalizedQuery.split(/\s+-/);
     const filteredCharacters = CHARACTERS
       .filter((character) => {
-        if (!normalizedQuery) return true;
         const searchableText = [character.name, ...(character.tags || [])].join(' ').toLocaleLowerCase();
-        return searchableText.includes(normalizedQuery);
+        return (!positiveFilter.trim() || searchableText.includes(positiveFilter.trim()))
+          && excludedFilters.every((filter) => !filter.trim() || !searchableText.includes(filter.trim()));
       });
     return sortCharacters(filteredCharacters, sortOrder);
   }, [query, sortOrder]);
@@ -52,43 +71,53 @@ export function CharacterCatalogPage() {
           <h1>ГРАВЦІ</h1>
         </header>
         <div className="characters-toolbar">
-          <div className="characters-search-wrap">
-            <label className="characters-search">
-              <Search size={18} />
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                onKeyDown={(event) => {
-                  if ((event.key === 'Tab' || event.key === 'Enter') && matchingSuggestions.length > 0) {
-                    event.preventDefault();
-                    completeSearch(matchingSuggestions[0]);
-                  }
-                }}
-                placeholder="Пошук за ім’ям або тегом"
-                aria-label="Пошук за ім’ям або тегом"
-              />
-            </label>
-            {searchFocused && matchingSuggestions.length > 0 && (
-              <div className="characters-search-suggestions">
-                {matchingSuggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    className="characters-search-suggestion"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => {
-                      setQuery(suggestion);
-                      setSearchFocused(false);
-                    }}
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="characters-search-control">
+            <div className="characters-search-wrap">
+              <label className="characters-search">
+                <Search size={18} />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
+                  onKeyDown={(event) => {
+                    if ((event.key === 'Tab' || event.key === 'Enter') && matchingSuggestions.length > 0) {
+                      event.preventDefault();
+                      completeSearch(matchingSuggestions[0]);
+                    }
+                  }}
+                  placeholder="Пошук за ім’ям або тегом"
+                  aria-label="Пошук за ім’ям або тегом"
+                />
+              </label>
+              {searchFocused && matchingSuggestions.length > 0 && (
+                <div className="characters-search-suggestions">
+                  {matchingSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      className="characters-search-suggestion"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => completeSearch(suggestion)}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              className="characters-filter-help"
+              aria-label="Підказка про виключення фільтрів"
+              aria-describedby="characters-filter-help-tooltip"
+            >
+              <CircleHelp size={18} />
+              <span className="characters-filter-tooltip" id="characters-filter-help-tooltip" role="tooltip">
+                Поставте «-» перед фільтром, щоб виключити його. Наприклад: -країна:Хапонія
+              </span>
+            </button>
           </div>
           <label className="characters-sort">
             <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Сортування персонажів">

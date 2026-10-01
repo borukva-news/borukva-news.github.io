@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import './CharacterCardPage.css';
 import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
 import { ModelViewport } from '../components/ModelViewport';
 import ModelViewportMobile from '../components/ModelViewportMobile';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -77,12 +77,14 @@ function CharacterCard({  character,
   const [animationName, setAnimationName] = useState('idle');
   const [skinId, setSkinId] = useState(character.skins[0]?.id);
   const [autoRotate, setAutoRotate] = useState(false);
+  const [knownExpanded, setKnownExpanded] = useState(false);
   const animations = character.model.animations || [];
   const activeSkin = character.skins.find((skin) => skin.id === skinId) || character.skins[0];
 
   useEffect(() => {
     setSkinId(character.skins[0]?.id);
     setAnimationName('idle');
+    setKnownExpanded(false);
   }, [character]);
 
   useEffect(() => {
@@ -125,7 +127,29 @@ function CharacterCard({  character,
           </div>
         </div>
         <div className="card-info-col">
-          <div className={`title-ribbon ${RARITY_CLASS[character.rarity]}`}><p>{character.name}</p></div>
+          <div className={`title-ribbon ${RARITY_CLASS[character.rarity]}`}>
+            <div className="character-name-row">
+              <p>{character.name}</p>
+              {character.known && (
+                <button
+                  className="known-toggle"
+                  type="button"
+                  title="Також знаний як..."
+                  aria-label={knownExpanded ? `Приховати інше ім'я ${character.name}` : `Показати інше ім'я ${character.name}`}
+                  aria-expanded={knownExpanded}
+                  aria-controls={`known-${character.id}`}
+                  onClick={() => setKnownExpanded((expanded) => !expanded)}
+                >
+                  <ChevronDown size={18} />
+                </button>
+              )}
+            </div>
+            {character.known && knownExpanded && (
+              <ul className="known-list" id={`known-${character.id}`}>
+                <li>{character.known}</li>
+              </ul>
+            )}
+          </div>
           <p className={`rarity-label ${RARITY_CLASS[character.rarity]}`}>{character.rarity.toUpperCase()}</p>
           <div className="feature-list">
             {character.characteristics.map((bullet, bulletIndex) => <FeatureRow key={bullet} text={bullet} isFirst={bulletIndex === 0} />)}
