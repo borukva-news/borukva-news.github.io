@@ -77,7 +77,7 @@ export function CarouselScreen({ title = 'Borukva News', pages, hotspotFile, bgA
 
   return (
     <div className="carousel-screen">
-      <img className="bg-image" src={bgAsset} alt="" />
+      <div className="bg-image" style={{ backgroundImage: `url(${bgAsset})` }} aria-hidden="true" />
 
       <header className="carousel-appbar">
         <button className="back-link" onClick={() => navigate('/')} title="На головну">

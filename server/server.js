@@ -213,16 +213,18 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function moderationEmailHtml({ id, author, title, approveUrl, rejectUrl }) {
+function moderationEmailHtml({ id, author, organizationName, authorMessage, title, approveUrl, rejectUrl }) {
   return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:30px;background:#f6f7f9">
   <div style="background:#ffffff;border-radius:12px;padding:28px;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
     <h2 style="margin-top:0;color:#202124;">📰 Нова новина на модерацію</h2>
-    <p style="color:#5f6368;font-size:15px;">Нова новина від автора <b>${escapeHtml(author)}</b> очікує на модерацію.</p>
+    <p style="color:#5f6368;font-size:15px;">Нова новина від автора <b>${escapeHtml(author)}</b> (${escapeHtml(organizationName)}) очікує на модерацію.</p>
     <div style="background:#f1f3f4;border-radius:8px;padding:14px;margin:20px 0;">
       <div style="font-size:12px;color:#80868b;">ID новини</div>
       <div style="font-family:monospace;margin-top:4px;">${escapeHtml(id)}</div>
       <div style="font-size:12px;color:#80868b;margin-top:12px;">Назва</div>
       <div style="margin-top:4px;">${escapeHtml(title)}</div>
+      <div style="font-size:12px;color:#80868b;margin-top:12px;">Повідомлення</div>
+      <div style="margin-top:4px;white-space:pre-wrap;">${escapeHtml(authorMessage)}</div>
     </div>
     <p style="font-size:14px;color:#5f6368;">Оберіть дію:</p>
     <div style="margin-top:20px;">
@@ -391,21 +393,22 @@ app.put('/api/hotspots/:file', async (req, res) => {
 });
 
 app.post('/api/propose-news', async (req, res) => {
-  const { title, authorNick, authorEmail, images, hotspots = [] } = req.body || {};
+  const { title, authorNick, organizationName, authorMessage, secretNumber = '', images, hotspots = [] } = req.body || {};
   console.log('[propose-news] request received', {
     title,
     authorNick,
     imageCount: Array.isArray(images) ? images.length : 0,
     hotspotCount: Array.isArray(hotspots) ? hotspots.length : 0,
   });
-  if (!title?.trim() || !authorNick?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authorEmail || '') || !Array.isArray(images) || images.length === 0) {
+  if (!title?.trim() || !authorNick?.trim() || !organizationName?.trim() || !authorMessage?.trim() || typeof secretNumber !== 'string' || !Array.isArray(images) || images.length === 0) {
     console.error('[propose-news] validation failed', {
       hasTitle: Boolean(title?.trim()),
       hasAuthorNick: Boolean(authorNick?.trim()),
-      hasValidEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authorEmail || ''),
+      hasOrganizationName: Boolean(organizationName?.trim()),
+      hasAuthorMessage: Boolean(authorMessage?.trim()),
       imageCount: Array.isArray(images) ? images.length : 0,
     });
-    return res.status(400).json({ error: 'title, authorNick, authorEmail and at least one image are required' });
+    return res.status(400).json({ error: 'title, authorNick, organizationName, authorMessage and at least one image are required' });
   }
   try {
     console.log('[propose-news] started', { title, authorNick, imageCount: images.length, hotspotCount: hotspots.length });
@@ -423,7 +426,7 @@ app.post('/api/propose-news', async (req, res) => {
     console.log('[propose-news] reserving id', { id });
     await writeGithubFile('custom-news', 'ids/news_ids.json', JSON.stringify({ lastId: Number(id.slice(5)) }, null, 2), `Reserve ${id}`, idsSha);
     const imageNames = images.map((_, index) => `${id}_p${index + 1}.png`);
-    const news = { id, title: title.trim(), authorNick: authorNick.trim(), authorEmail: authorEmail.trim(), status: 'draft', createdAt: new Date().toISOString(), images: imageNames, likes: 0, dislikes: 0, comments: [], commentsCount: 0, reactionVoters: {} };
+    const news = { id, title: title.trim(), authorNick: authorNick.trim(), organizationName: organizationName.trim(), authorMessage: authorMessage.trim(), ...(secretNumber ? { secretNumber: secretNumber.trim() } : {}), status: 'draft', createdAt: new Date().toISOString(), images: imageNames, likes: 0, dislikes: 0, comments: [], commentsCount: 0, reactionVoters: {} };
     console.log('[propose-news] saving draft', { id });
     await writeGithubFile('custom-news', `drafts/${id}.json`, JSON.stringify(news, null, 2), `Create draft ${id}`);
     console.log('[propose-news] saving images', { id, count: images.length });
@@ -432,8 +435,8 @@ app.post('/api/propose-news', async (req, res) => {
     console.log('[propose-news] sending moderation email', { id, to: MODERATOR_EMAIL });
     const approve = `${API_PUBLIC_URL}/api/news/moderate?id=${id}&action=approve&token=${encodeURIComponent(MODERATION_SECRET)}`;
     const reject = `${API_PUBLIC_URL}/api/news/moderate?id=${id}&action=reject&token=${encodeURIComponent(MODERATION_SECRET)}`;
-    const moderationText = `ID: ${id}\nАвтор: ${authorNick} (${authorEmail})\nНазва: ${title}\n\nApprove: ${approve}\nReject: ${reject}`;
-    const moderationHtml = moderationEmailHtml({ id, author: authorNick, title, approveUrl: approve, rejectUrl: reject });
+    const moderationText = `ID: ${id}\nАвтор: ${authorNick}\nОрганізація: ${organizationName}\nПовідомлення: ${authorMessage}\nНазва: ${title}\n\nApprove: ${approve}\nReject: ${reject}`;
+    const moderationHtml = moderationEmailHtml({ id, author: authorNick, organizationName, authorMessage, title, approveUrl: approve, rejectUrl: reject });
     const mailResult = await sendMail(MODERATOR_EMAIL, `Нова новина на модерацію: ${title}`, moderationText, moderationHtml);
     console.log('[propose-news] completed', { id, mailSent: mailResult.sent, mailError: mailResult.error, mailCode: mailResult.code });
     res.status(201).json({ status: 'draft_created', id, mailSent: mailResult.sent, mailError: mailResult.error, mailCode: mailResult.code || null });
@@ -454,26 +457,15 @@ app.get('/api/news/moderate', async (req, res) => {
         if (!content.length) throw new Error(`Cannot publish empty image: ${name}`);
         return writeGithubFile('custom-news', `published/images/${name}`, content, `Publish ${name}`);
       }));
-      const published = { ...draft, status: 'published' };
+      const publishedDraft = { ...draft };
+      delete publishedDraft.secretNumber;
+      delete publishedDraft.authorEmail;
+      const published = { ...publishedDraft, status: 'published' };
       await writeGithubFile('custom-news', `published/${id}.json`, JSON.stringify(published, null, 2), `Publish ${id}`);
     }
     await removeGithubFile('custom-news', `drafts/${id}.json`, `${action} ${id}`);
     await Promise.all(draft.images.map((name) => removeGithubFile('custom-news', `drafts/images/${name}`, `${action} ${name}`).catch((err) => { if (err.status !== 404) throw err; })));
     if (action === 'reject') await removeGithubFile('news-data', `hotspots/${id}_hotspots.json`, `Reject hotspots for ${id}`).catch((err) => { if (err.status !== 404) throw err; });
-    const authorMailResult = await sendMail(
-      draft.authorEmail,
-      `Новину ${action === 'approve' ? 'опубліковано' : 'відхилено'}`,
-      `Випуск «${draft.title}» (${id}) ${action === 'approve' ? 'опубліковано.' : 'відхилено.'}`,
-      `<p>Випуск «${escapeHtml(draft.title)}» (${escapeHtml(id)}) ${action === 'approve' ? 'опубліковано.' : 'відхилено.'}</p>`
-    );
-    console.log('[moderate] author notification result', {
-      id,
-      action,
-      to: draft.authorEmail,
-      mailSent: authorMailResult.sent,
-      mailError: authorMailResult.error,
-      mailCode: authorMailResult.code || null,
-    });
     res.type('html').send(`<h1>${action === 'approve' ? 'Новину опубліковано' : 'Новину відхилено'}</h1><p>${draft.title}</p>`);
   } catch (err) { console.error('[moderate]', err); res.status(err.status || 502).send('Moderation failed'); }
 });
@@ -536,12 +528,12 @@ app.post('/api/news/:id/reactions', async (req, res) => {
 });
 
 app.post('/api/news/:id/comments', async (req, res) => {
-  const { author, authorEmail, text } = req.body || {};
+  const { author, text } = req.body || {};
   if (!validNewsId(req.params.id) || !author?.trim() || !text?.trim()) return res.status(400).json({ error: 'Author and text are required' });
   try {
     const file = await readGithubFile('custom-news', `published/${req.params.id}.json`);
     const news = parseNews(JSON.parse(file.decoded));
-    news.comments.push({ author: author.trim(), authorEmail: authorEmail?.trim() || '', text: text.trim(), createdAt: new Date().toISOString() });
+    news.comments.push({ author: author.trim(), text: text.trim(), createdAt: new Date().toISOString() });
     news.commentsCount = news.comments.length;
     await writeGithubFile('custom-news', `published/${req.params.id}.json`, JSON.stringify(news, null, 2), `Comment on ${req.params.id}`, file.sha);
     res.status(201).json(news.comments.at(-1));

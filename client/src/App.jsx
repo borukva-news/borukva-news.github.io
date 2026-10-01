@@ -37,7 +37,6 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<NewsHomePage />} />
-          <Route path="/feed" element={<NewsHomePage feedPage />} />
           <Route path="/generator" element={<NewspaperGenerator />} />
           <Route path="/RULE34" element={<MainScreen />} />
           <Route path="/empty" element={<EmptyScreen />} />

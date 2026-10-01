@@ -10,7 +10,7 @@ export function EmptyScreen() {
 
   return (
     <div className="main-screen">
-      <img className="bg-image" src={BG_ASSET} alt="" />
+      <div className="bg-image" style={{ backgroundImage: `url(${BG_ASSET})` }} aria-hidden="true" />
       <div className="bg-dim" />
       <div className="main-screen-content">
         <div className="main-title" style={{ fontSize: 36 }}>

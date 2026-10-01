@@ -9,6 +9,9 @@ import quodModelSource from '../../public/assets/models/model quod.bbmodel?raw';
 import patokiModelSource from '../../public/assets/models/model patoki.bbmodel?raw';
 import orestModelSource from '../../public/assets/models/model orest.bbmodel?raw';
 import papasvinModelSource from '../../public/assets/models/model papasvin.bbmodel?raw';
+import placeholderModelSource from '../../public/assets/models/model placeholder.bbmodel?raw';
+import griagModelSource from '../../public/assets/models/model griag.bbmodel?raw';
+import tetoModelSource from '../../public/assets/models/model teto.bbmodel?raw';
 
 function buildEmbeddedOverrides(model) {
   const overrides = {};
@@ -32,6 +35,9 @@ const quodModel = JSON.parse(quodModelSource);
 const patokiModel = JSON.parse(patokiModelSource);
 const orestModel = JSON.parse(orestModelSource);
 const papasvinModel = JSON.parse(papasvinModelSource);
+const placeholderModel = JSON.parse(placeholderModelSource);
+const griagModel = JSON.parse(griagModelSource);
+const tetoModel = JSON.parse(tetoModelSource);
 // зробити перенаправлення з borukva-news.github.io / borukvanews на borukva - news.github.io
 
 export function sortCharacters(characters, sortOrder) {
@@ -48,7 +54,7 @@ export const CHARACTERS = [
     name: 'PS_PROFI',
     avatarPath: `assets/skins/ps-profi.png`,
     rarity: 'Журналіст',
-    tags: ['країна:Телос Докіме', 'країна:Гузняни', 'відзначився:ЖУРНАЛІСТ', 'сезон:Сезон: 6', 'сезон:Сезон: 67'],
+    tags: ['країна:Телос Докіме', 'країна:Гузняни', 'відзначився:ЖУРНАЛІСТ', 'сезон:Сезон: 6', 'сезон:Сезон: 67' , 'сезон:Сезон 7', 'країна:КОКС'],
     animationFile: 'model psprofi.bbmodel',
     model: psProfiModel,
     skins: [
@@ -59,10 +65,10 @@ export const CHARACTERS = [
       },
     ],
     characteristics: [
-      'Гравець 6, 6-7 сезону Борукви.',
+      'Гравець 7 сезону Борукви.',
       'quote{"О великий кажан комунізму врятуй онлайн борукви"}\n',
       'Майстер новин.',
-      'Поточна Країна: Гузняни.',
+      'Поточна Країна: Країна Оази Квітучого Сонця.',
     ],
   },
   {
@@ -70,7 +76,7 @@ export const CHARACTERS = [
     name: 'FransysDikiy',
     avatarPath: `assets/skins/fransys-dikiy.png`,
     rarity: 'Меценат',
-    tags: ['країна:С.Р.А.К.А.', 'країна:Сракоміда', 'відзначився:МЕЦЕНАТ', 'сезон:Сезон: 6', 'сезон:Сезон: 67'],
+    tags: ['країна:С.Р.А.К.А.', 'країна:Сракоміда', 'відзначився:МЕЦЕНАТ', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Досягнокрай'],
     animationFile: 'model fransysdikiy.bbmodel',
     model: fransysDikiyModel,
     skins: [
@@ -81,7 +87,7 @@ export const CHARACTERS = [
       },
     ],
     characteristics: [
-      'Гравець 6, 6-7 сезону Борукви. ',
+      'Гравець 7 сезону Борукви. ',
       'quote{ "Всі хто користується тризубом повинні сидіти в тюрмі"}\n ',
       'Фанат досягнень, партнер link{https://borukva-news.github.io/skins?character=papa-svin&sort=name-asc}[PapaSvin1], продав душу за фумо.\n', 'Поточна Країна: Сракоміда',
     ],
@@ -91,7 +97,7 @@ export const CHARACTERS = [
     name: 'Dornanesko',
     avatarPath: `assets/skins/dornanesko.png`,
     rarity: 'Гравець',
-    tags: ['країна:Задунайська Січ', 'країна:НІК',  'відзначився:ГРАВЕЦЬ', 'сезон:Сезон: 6', 'сезон:Сезон: 67'],
+    tags: ['країна:Задунайська Січ', 'країна:НІК',  'відзначився:ГРАВЕЦЬ', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Бака-Троєщина'],
     animationFile: 'model dornanesko.bbmodel',
     model: dornaneskoModel,
     skins: [
@@ -102,18 +108,18 @@ export const CHARACTERS = [
       },
     ],
     characteristics: [
-      'Гравець 6, 6-7 сезону Борукви.',
+      'Гравець 7 сезону Борукви.',
       'quote{"Поки ти залишаєшся ♂️slave♂️ ,я стаю ♂️dungeon master\'ом♂️"}\n',
       'Хардкорщик гравець на андроїді, той хто вивозить онлайн, ♂Dungeon Master♂.\n',
-      'Поточна Країна: ???',
+      'Поточна Країна: Бака-Троєщина',
     ],
   },
   {
     id: 'miha',
     name: 'M_I_H_A_2_1',
     avatarPath: `assets/skins/miha.png`,
-    rarity: 'Особливий хлопчик',
-    tags: ['країна:Керосинівка', 'країна:Монако', 'країна:НІК', 'відзначився:ПРОПЛАЧЕНИЙ', 'сезон:Сезон: 6', 'сезон:Сезон: 67'],
+    rarity: 'Гравець',
+    tags: ['країна:Керосинівка', 'країна:Монако', 'країна:НІК', 'відзначився:МЕЛОЧЬ ПУЗАТА', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Западенці'],
     animationFile: 'model miha.bbmodel',
     model: mihaModel,
     skins: [
@@ -124,10 +130,10 @@ export const CHARACTERS = [
       },
     ],
     characteristics: [
-      'Гравець 6, 6-7 сезону Борукви.',
+      'Гравець 7 сезону Борукви.',
       'quote{"Піду скакун з гори в ріку"}\n',
       'Казінолог, ПВК Монако не забуто. \n',
-      'Поточна Країна: НІК (Нова Імперія Керосинівка)',
+      'Поточна Країна: Западенці',
     ],
   },
   {
@@ -135,9 +141,9 @@ export const CHARACTERS = [
     name: 'Maliyo',
     avatarPath: `assets/skins/maliyo.png`,
     rarity: 'Недоторканий (ютубер)',
-    tags: ['компанія:ВМВ', 'відзначився:ЮТУБЕР', 'сезон:Сезон: 6', 'сезон:Сезон: 67'],
-    animationFile: 'model maliyo.bbmodel',
-    model: maliyoModel,
+    tags: ['компанія:ВМВ', 'відзначився:ЮТУБЕР', 'сезон:Сезон: 6'],
+    animationFile: 'model maliyo2.bbmodel',
+    model: maliyo2Model,
     skins: [
       {
         id: 'original',
@@ -147,7 +153,7 @@ export const CHARACTERS = [
       
     ],
     characteristics: [
-      'Гравець 6, 6-7 сезону Борукви.',
+      'Гравець 7 сезону Борукви.',
       'quote{"Профілактично ірл йому цеглиною можна було б обличча порівняти"}\n',
       'Коли відео? ВМВ pamietamy. \n',
       'Поточна Країна: ???',
@@ -158,7 +164,7 @@ export const CHARACTERS = [
     name: 'Kruchka',
     avatarPath: `assets/skins/kruchka.png`,
     rarity: 'Гравець',
-    tags: ['країна:С.Р.А.К.А.', 'відзначився:ГРАВЕЦЬ', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'країна:Хапонія'],
+    tags: ['країна:С.Р.А.К.А.', 'відзначився:ГРАВЕЦЬ', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Хапонія'],
     animationFile: 'model kruchka.bbmodel',
     model: kruchkaModel,
     skins: [
@@ -170,10 +176,10 @@ export const CHARACTERS = [
       
     ],
     characteristics: [
-      'Гравець 6, 6-7 сезону Борукви.',
+      'Гравець 7 сезону Борукви.',
       'quote{"Ми не любимо підарів. До геїв питань нема..."}\n',
       'Вімзікал будівельниця. \n',
-      'Поточна Країна: (майбутня) Хапонія',
+      'Поточна Країна: Хапонія',
     ],
   },
   {
@@ -181,7 +187,7 @@ export const CHARACTERS = [
     name: 'Quod',
     avatarPath: `assets/skins/quod.png`,
     rarity: 'Гравець',  
-    tags: ['відзначився:ОЛД', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'країна:Хапонія', 'країна:С.Р.А.К.А.', 'країна:Сракоміда'],
+    tags: ['відзначився:ОЛД', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Хапонія', 'країна:С.Р.А.К.А.', 'країна:Сракоміда'],
     animationFile: 'model quod.bbmodel',
     model: quodModel,
     skins: [  
@@ -192,18 +198,18 @@ export const CHARACTERS = [
       }
     ],
     characteristics: [
-      'Гравець 6, 6-7 сезону Борукви.',
+      'Гравець 7 сезону Борукви.',
       'quote{"В когось є фото мухи з хуйом?"}\n',
       'Quod (але в грі Quodie, бо якийсь імбецил 10 років тому зайняв мій нік і більше ніколи не заходив у гру), граю з 2 сезону. \n',
-      'Поточна Країна: (майбутня) Хапонія',
+      'Поточна Країна: Хапонія',
     ],
   },
   {
     id: 'patoki',
-    name: 'Ratskui',
+    name: 'ratskui',
     avatarPath: `assets/skins/patoki.png`,
     rarity: 'Адмін',  
-    tags: [ 'відзначився:ОЛД', 'відзначився:АДМІН', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'країна:Постмодернія', 'країна:67 Русь'],
+    tags: [ 'відзначився:ОЛД', 'відзначився:АДМІН', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Постмодернія', 'країна:67 Русь', 'країна:Западенці'],
     animationFile: 'model patoki.bbmodel',
     model: patokiModel,
     skins: [  
@@ -214,10 +220,10 @@ export const CHARACTERS = [
       }
     ],
     characteristics: [
-      'Гравець 6, 6-7 сезону Борукви.',
+      'Гравець 7 сезону Борукви.',
       'quote{"ніхто не повернеться на 3 сезон."}\n',
       'Він же patoki, топ 5 пранків в спектаторі, фанат Шонґкрату \n',
-      'Поточна Країна: 67 русь',
+      'Поточна Країна: Западенці',
     ],
   },
   {
@@ -236,7 +242,7 @@ export const CHARACTERS = [
       }
     ],
     characteristics: [
-      'Гравець 6, 6-7 сезону Борукви.',
+      'Гравець 6 сезону Борукви.',
       'quote{"Розбомбити всіх в кого втсановлееий майнкрафт"}\n',
       'Він же xxFIREBOSSxx, фан факт, адмін УкрНаступу \n',
       'Поточна Країна: ???',
@@ -247,7 +253,7 @@ export const CHARACTERS = [
     name: 'PapaSvin1',
     avatarPath: `assets/skins/papasvin.png`,
     rarity: 'Гравець',  
-    tags: [ 'відзначився:ГРАВЕЦЬ', 'сезон:Сезон: 6',  'країна:Кримська Долина'],
+    tags: [ 'відзначився:ГРАВЕЦЬ', 'сезон:Сезон: 6', 'сезон:Сезон 7', 'країна:Кримська Долина', 'країна:Досягнoкрай' ],
     animationFile: 'model papasvin.bbmodel',
     model: papasvinModel,
     skins: [  
@@ -258,10 +264,76 @@ export const CHARACTERS = [
       }
     ],
     characteristics: [
-      'Гравець 6, 6-7 сезону Борукви.',
+      'Гравець 7 сезону Борукви.',
       'quote{"я дійсно папасвін"}\n',
       'Фанат досягнень 2, топ 2 по досягненням, партнер link{https://borukva-news.github.io/skins?character=fransys-dikiy&sort=name-asc}[FransysDikiy] \n',
-      'Поточна Країна: ???',
+      'Поточна Країна: Досягнокрай',
     ],
   },
+  {
+    id: 'griag',
+    name: 'griag_',
+    avatarPath: `assets/skins/griag.png`,
+    rarity: 'Гравець',  
+    tags: [ 'відзначився:ГРАВЕЦЬ', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Грягівка', 'країна:Бака-Троєщина' ],
+    animationFile: 'model griag.bbmodel',
+    model: griagModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(griagModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"гр я  г"}\n',
+      'це гря г\n',
+      'Поточна Країна: Бака-Троєщина',
+    ],
+  },
+  {
+    id: 'teto',
+    name: 'Teto_____',
+    avatarPath: `assets/skins/teto.png`,
+    rarity: 'Адмін',  
+    tags: [ 'відзначився:АДМІН', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Бака-Троєщина' ],
+    animationFile: 'model teto.bbmodel',
+    model: tetoModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(tetoModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"новенький скидай труси"}\n',
+      'Адмін, крутий ПВПшер, гриб на всю голову\n',
+      'Поточна Країна: Бака-Троєщина',
+    ],
+  },
+  //   {
+  //   id: 'none',
+  //   name: 'placeholder',
+  //   avatarPath: `assets/skins/teto.png`,
+  //   rarity: 'Адмін',  
+  //   tags: [ 'відзначився:АДМІН', 'сезон:Сезон: 6', 'сезон:Сезон: 67', 'сезон:Сезон 7', 'країна:Бака-Троєщина' ],
+  //   animationFile: 'model teto.bbmodel',
+  //   model: tetoModel,
+  //   skins: [  
+  //     {
+  //       id: 'original',
+  //       name: 'Оригінал',
+  //       overrides: buildEmbeddedOverrides(tetoModel),
+  //     }
+  //   ],
+  //   characteristics: [
+  //     'Гравець 7 сезону Борукви.',
+  //     'quote{"новенький скидай труси"}\n',
+  //     'Адмін, крутий ПВПшер, гриб на всю голову\n',
+  //     'Поточна Країна: Бака-Троєщина',
+  //   ],
+  // },
 ];

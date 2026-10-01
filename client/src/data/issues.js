@@ -206,7 +206,7 @@ export const MAIN_MENU_BUTTONS = [
 ];
 
 export const SERVER_WIKI_URL =
-  'https://tsebuleve.wiki.gg/uk/wiki/%D0%93%D0%B0%D0%B9%D0%B4_%C2%AB%D0%A0%D0%B5%D1%94%D1%81%D1%82%D1%80%D0%B0%D1%86%D1%96%D1%8F_%D0%BD%D0%B0_%D1%81%D0%B5%D1%80%D0%B2%D0%B5%D1%80%D1%96%C2%BB';
+  'https://site.borukva.space/pages/welcome';
 
 export const BG_ASSET = assetUrl('assets/pictures/bg/bg_borukva.png');
 export const BG_MONOCHROME_ASSET = assetUrl('assets/pictures/bg/bg_borukva-monochrome.png');

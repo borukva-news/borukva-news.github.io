@@ -24,6 +24,11 @@ body,
   margin: 0;
 }
 
+:root {
+  --site-bg-width: max(108vw, 144vh);
+  --site-bg-height: max(81vw, 108vh);
+}
+
 body {
   font-family: 'Minecraft', sans-serif;
   color: #fff;
@@ -75,6 +80,26 @@ a {
 .generator-menu-close,
 .generator-menu-backdrop {
   display: none;
+}
+.generator-shell {
+  background-repeat: repeat;
+  background-position: 0 0;
+  background-size: var(--site-bg-width) var(--site-bg-height);
+  animation: site-background-drift 360s linear infinite;
+}
+.generator-controls {
+  box-sizing: border-box;
+  background: rgba(34, 34, 34, 0.92) !important;
+}
+.generator-controls input:not([type='file']),
+.generator-controls textarea,
+.generator-controls select {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+.generator-history-actions {
+  flex-wrap: wrap;
+  justify-content: center;
 }
 .generator-page-stage {
   position: relative;
@@ -142,8 +167,21 @@ a {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   z-index: -2;
+  background-position: 0 0;
+  background-repeat: repeat;
+  background-size: var(--site-bg-width) var(--site-bg-height);
+  animation: site-background-drift 360s linear infinite;
+}
+@keyframes site-background-drift {
+  to { background-position: var(--site-bg-width) var(--site-bg-height); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .generator-shell,
+  .bg-image,
+  .cardviewer-bg {
+    animation: none;
+  }
 }
 .bg-dim {
   position: fixed;
@@ -432,6 +470,7 @@ a {
 }
 
 .home-carousel {
+  box-sizing: border-box;
   width: 100%;
   max-width: 900px;
   height: min(76vh, 760px);
@@ -555,6 +594,7 @@ a {
 }
 
 .news-home-footer {
+  box-sizing: border-box;
   width: 100%;
   padding: 20px;
   background: rgba(255, 255, 255, 0.5);
@@ -1331,9 +1371,10 @@ a {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  background-position: 0 0;
+  background-repeat: repeat;
+  background-size: var(--site-bg-width) var(--site-bg-height);
+  animation: site-background-drift 360s linear infinite;
 }
 .cardviewer-content {
   max-width: 1100px;

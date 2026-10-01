@@ -5,9 +5,18 @@ import { assetUrl } from '../data/issues';
 
 const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://borukva-news-github-io.onrender.com').replace(/\/+$/, '');
 const PROFILE_KEY = 'borukva-news-profile';
+const GENERATOR_BACKGROUND = assetUrl('assets/pictures/bg/bg_borukva-purple.png');
 
 function getSavedProfile() {
-  try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}'); } catch { return {}; }
+  try {
+    const profile = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+    if (profile && typeof profile === 'object' && 'authorEmail' in profile) {
+      const { authorEmail: _authorEmail, ...currentProfile } = profile;
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(currentProfile));
+      return currentProfile;
+    }
+    return profile;
+  } catch { return {}; }
 }
 
 function getInitialPageZoom() {
@@ -25,7 +34,9 @@ export default function NewspaperGenerator() {
   const [docName, setDocName] = useState('Моя новина');
   const savedProfile = getSavedProfile();
   const [authorNick, setAuthorNick] = useState(savedProfile.author || '');
-  const [authorEmail, setAuthorEmail] = useState(savedProfile.authorEmail || '');
+  const [organizationName, setOrganizationName] = useState(savedProfile.organizationName || '');
+  const [authorMessage, setAuthorMessage] = useState(savedProfile.authorMessage || '');
+  const [secretNumber] = useState('');
   const [pages, setPages] = useState([
     { id: 1, background: PRESET_BACKGROUNDS[0]?.path || '', elements: [], hotspots: [] },
   ]);
@@ -71,20 +82,26 @@ export default function NewspaperGenerator() {
 
   const createElementId = () => Date.now() + Math.random();
 
-  const clampElement = (element) => ({
-    ...element,
-    left: Math.max(0, Math.min(600 - Math.max(20, element.width), element.left)),
-    top: Math.max(0, Math.min(850 - Math.max(2, element.height), element.top)),
-    width: Math.max(20, Math.min(600, element.width)),
-    height: Math.max(2, Math.min(850, element.height)),
-  });
+  const clampElement = (element) => {
+    const width = Math.max(20, Math.min(600, element.width));
+    const height = Math.max(2, Math.min(850, element.height));
+    const radians = ((element.rotation || 0) * Math.PI) / 180;
+    const imageScale = element.type === 'image' ? (element.scale || 1) : 1;
+    const displayedWidth = width * imageScale;
+    const displayedHeight = height * imageScale;
+    const rotatedWidth = Math.abs(displayedWidth * Math.cos(radians)) + Math.abs(displayedHeight * Math.sin(radians));
+    const rotatedHeight = Math.abs(displayedWidth * Math.sin(radians)) + Math.abs(displayedHeight * Math.cos(radians));
+    const centerX = Math.max(rotatedWidth / 2, Math.min(600 - rotatedWidth / 2, element.left + displayedWidth / 2));
+    const centerY = Math.max(rotatedHeight / 2, Math.min(850 - rotatedHeight / 2, element.top + displayedHeight / 2));
+    return { ...element, left: centerX - displayedWidth / 2, top: centerY - displayedHeight / 2, width, height };
+  };
 
   const startElementDrag = (event, element, mode = 'move', handle = '') => {
     event.preventDefault();
     event.stopPropagation();
     setSelectedElId(element.id);
     historyRef.current = [...historyRef.current.slice(-49), pages];
-    dragStateRef.current = { id: element.id, element, mode, handle, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY };
+    dragStateRef.current = { id: element.id, element, mode, handle, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, zoom: pageZoom };
   };
 
   const copySelectedElement = () => {
@@ -120,8 +137,8 @@ export default function NewspaperGenerator() {
     function moveElement(event) {
       const drag = dragStateRef.current;
       if (!drag || drag.pointerId !== event.pointerId) return;
-      const dx = event.clientX - drag.startX;
-      const dy = event.clientY - drag.startY;
+      const dx = (event.clientX - drag.startX) / drag.zoom;
+      const dy = (event.clientY - drag.startY) / drag.zoom;
       const next = { ...drag.element };
       if (drag.mode === 'move') {
         next.left += dx;
@@ -280,8 +297,8 @@ export default function NewspaperGenerator() {
 
   // ── Передача пропозиції на backend ──
   const handleSendToReview = async () => {
-    if (!docName.trim() || !authorNick.trim() || !authorEmail.trim()) {
-      alert('Заповніть назву, нікнейм та Email перед відправкою!');
+    if (!docName.trim() || !authorNick.trim() || !organizationName.trim() || !authorMessage.trim()) {
+      alert('Заповніть назву, нікнейм, організацію та повідомлення перед відправкою!');
       return;
     }
 
@@ -310,7 +327,7 @@ export default function NewspaperGenerator() {
       const response = await fetch(`${BACKEND_URL}/api/propose-news`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: docName, authorNick, authorEmail, images, hotspots: pages.flatMap((page, index) => page.hotspots.map((hotspot) => ({ ...hotspot, page: index + 1 }))) }),
+        body: JSON.stringify({ title: docName, authorNick, organizationName, authorMessage, secretNumber, images, hotspots: pages.flatMap((page, index) => page.hotspots.map((hotspot) => ({ ...hotspot, page: index + 1 }))) }),
       });
       const responseText = await response.text();
       console.info('[generator] server status', { status: response.status, ok: response.ok, body: responseText.slice(0, 1000) });
@@ -325,7 +342,7 @@ export default function NewspaperGenerator() {
       setExportStatus('Сервер зберігає чернетку та надсилає лист...');
       const result = JSON.parse(responseText);
       console.info('[generator] server response', result);
-      localStorage.setItem(PROFILE_KEY, JSON.stringify({ author: authorNick.trim(), authorEmail: authorEmail.trim() }));
+      localStorage.setItem(PROFILE_KEY, JSON.stringify({ author: authorNick.trim(), organizationName: organizationName.trim(), authorMessage: authorMessage.trim() }));
       alert(result.mailSent
         ? `Новину ${result.id} збережено як чернетку та відправлено на модерацію.`
         : `Новину ${result.id} збережено як чернетку, але лист модератору не надіслано (${result.mailError || 'невідома SMTP помилка'}${result.mailCode ? `, ${result.mailCode}` : ''}).`);
@@ -348,7 +365,7 @@ export default function NewspaperGenerator() {
   const selectedElement = currentPage.elements.find((el) => el.id === selectedElId);
 
   return (
-    <div className="generator-shell" style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+    <div className="generator-shell" style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundImage: `url(${GENERATOR_BACKGROUND})` }}>
       {isExporting && (
         <div className="generator-loading-overlay" role="status" aria-live="polite">
           <div className="generator-spinner" />
@@ -367,7 +384,7 @@ export default function NewspaperGenerator() {
           ← На головний екран
         </button>
         <h2 style={{ fontSize: '16px', marginBottom: '16px' }}>ГЕНЕРАТОР НОВИН</h2>
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+        <div className="generator-history-actions" style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
           <button onClick={copySelectedElement} disabled={!selectedElement}>Копіювати</button>
           <button onClick={pasteElement} disabled={!hasCopiedElement}>Вставити</button>
           <button onClick={undoAction}>Скасувати</button>
@@ -390,8 +407,13 @@ export default function NewspaperGenerator() {
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Ваш Email:</label>
-          <input type="email" value={authorEmail} onChange={(e) => setAuthorEmail(e.target.value)} style={{ width: '100%', padding: '8px', background: '#333', color: '#fff', border: '1px solid #555' }} />
+          <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Назва організації:</label>
+          <input type="text" value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} style={{ width: '100%', padding: '8px', background: '#333', color: '#fff', border: '1px solid #555' }} />
+        </div>
+
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Повідомлення:</label>
+          <textarea value={authorMessage} onChange={(e) => setAuthorMessage(e.target.value)} rows={3} style={{ width: '100%', padding: '8px', background: '#333', color: '#fff', border: '1px solid #555' }} />
         </div>
 
         {/* Вибір фону */}
@@ -529,7 +551,7 @@ export default function NewspaperGenerator() {
       </div>
 
       {/* ── Область полотна (Canvas) ── */}
-      <div className="generator-canvas" style={{ flex: 1, background: '#111', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', padding: '20px' }}>
+      <div className="generator-canvas" style={{ flex: 1, background: 'transparent', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', padding: '20px' }}>
         <div className="generator-page-stage" style={{ width: `${600 * pageZoom}px`, height: `${850 * pageZoom}px` }}>
           <div className="generator-zoom-controls" role="group" aria-label="Масштаб листка">
             <button type="button" onClick={() => setPageZoom((zoom) => Math.max(0.45, zoom - 0.1))} aria-label="Зменшити">-</button>
@@ -550,7 +572,8 @@ export default function NewspaperGenerator() {
               flex: '0 0 600px',
                 backgroundImage: currentPage.background ? `url(${currentPage.background})` : 'none',
                 backgroundColor: '#dcd6cd',
-                backgroundSize: 'cover',
+                backgroundRepeat: 'repeat',
+                backgroundSize: '600px auto',
                 color: '#000',
                 padding: '16px',
                 boxSizing: 'border-box',

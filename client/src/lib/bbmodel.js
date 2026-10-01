@@ -87,6 +87,24 @@ function standardBoxFaces(size, uvOffset) {
   };
 }
 
+// ── Embedded textures ───────────────────────────────────────────────────
+// Blockbench embeds every texture as a base64 data URL in `textures[].source`.
+// Those are the BASE images; caller-supplied overrides (e.g. a player skin)
+// replace only the slot they are keyed to. A slot counts as overridden when
+// ANY of its uuid / name / id keys is present in `overrides`. Caller keys are
+// inserted first so `pickFallbackKey` still prefers the caller's textures for
+// faces that reference no resolvable slot.
+function withEmbeddedTextures(json, overrides) {
+  const merged = { ...(overrides || {}) };
+  (json.textures || []).forEach((t) => {
+    if (typeof t.source !== 'string' || !t.source.startsWith('data:')) return;
+    const keys = [t.uuid, t.name, t.id !== undefined ? String(t.id) : null].filter(Boolean);
+    if (keys.some((k) => merged[k])) return; // caller overrides this slot
+    merged[t.uuid || keys[0]] = t.source;
+  });
+  return merged;
+}
+
 // ── Texture resolution ──────────────────────────────────────────────────
 //
 // Real-world .bbmodel files vary a lot in how `face.texture` references a
@@ -200,6 +218,13 @@ function buildCubeMesh(el, resolution, model, overridesByKey, textureKeyToTextur
   return mesh;
 }
 
+// A cube pivots around its own `origin` (fallback: its center). A mesh has no
+// from/to — its geometry is already origin-relative — so it pivots at `origin`
+// (fallback: [0,0,0]) and its mesh object sits exactly on the pivot.
+function elementOrigin(el) {
+  return el.origin || (el.type === 'mesh' ? [0, 0, 0] : cubeCenter(el));
+}
+
 function textureMetaForFace(model, face) {
   const textures = model.textures || [];
   const raw = face.texture;
@@ -218,7 +243,10 @@ function buildMeshMesh(el, resolution, model, overridesByKey, textureKeyToTextur
   const uvs = [];
   const materials = [];
   const geometry = new THREE.BufferGeometry();
-  const origin = el.origin || [0, 0, 0];
+  // Blockbench stores mesh vertices RELATIVE to the element's `origin`
+  // (world = origin + vertex). The element's pivot group already sits at
+  // `origin`, so vertices go in as-is — subtracting origin here displaced
+  // every mesh by −origin.
 
   faces.forEach((face) => {
     const faceVertices = face.vertices || [];
@@ -235,11 +263,7 @@ function buildMeshMesh(el, resolution, model, overridesByKey, textureKeyToTextur
       const triangleStart = positions.length / 3;
       triangle.forEach((vertexId) => {
         const vertex = vertices[vertexId] || [0, 0, 0];
-        positions.push(
-          (vertex[0] - origin[0]) * UNIT,
-          (vertex[1] - origin[1]) * UNIT,
-          (vertex[2] - origin[2]) * UNIT
-        );
+        positions.push(vertex[0] * UNIT, vertex[1] * UNIT, vertex[2] * UNIT);
         const uv = face.uv?.[vertexId] || [0, 0];
         uvs.push(uv[0] / textureWidth, 1 - uv[1] / textureHeight);
       });
@@ -280,6 +304,37 @@ function captureBasePose(bone) {
   bone.userData.baseScale = bone.scale.clone();
 }
 
+// ── Animation targets ───────────────────────────────────────────────────
+// Every outliner node (group, cube, mesh, null_object, locator) is an
+// animatable target. It is registered under:
+//   • its uuid           (what Blockbench uses as the animator key — exact)
+//   • its name           (first node with that name wins)
+//   • its normalised name (lower-case, only [a-z0-9]) so "Right Arm",
+//     "right_arm" and "rightArm" all resolve to the same node.
+const normKey = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// Same skeleton slot, different naming convention between rigs.
+const BONE_ALIASES = { torso: 'body', body: 'torso' };
+
+function registerBone(ctx, node, uuid, name) {
+  if (uuid) ctx.bonesByKey[uuid] = node;
+  if (!name) return;
+  if (!(name in ctx.bonesByKey)) ctx.bonesByKey[name] = node;
+  const n = normKey(name);
+  if (n && !ctx.bonesByNorm[n]) ctx.bonesByNorm[n] = node;
+}
+
+function resolveAnimTarget(reg, key, name) {
+  const n = normKey(name);
+  return (
+    reg.bonesByKey[key] ||
+    (name && reg.bonesByKey[name]) ||
+    (n && reg.bonesByNorm[n]) ||
+    (n && BONE_ALIASES[n] && reg.bonesByNorm[BONE_ALIASES[n]]) ||
+    null
+  );
+}
+
 // A cube that lives INSIDE a group: carried by the bone, with its own
 // optional pivot (origin + rotation) nested between the bone and the mesh.
 // Composition: boneWorld ∘ T(cube.origin − bone.origin) ∘ R(cube.rotation) ∘ T(center − cube.origin)
@@ -294,7 +349,7 @@ function attachElement(el, host, hostOrigin, ctx) {
         ctx.wireframe
     );
 
-    const pivotOrigin = el.origin || cubeCenter(el);
+    const pivotOrigin = elementOrigin(el);
     const rotation = el.rotation || [0, 0, 0];
 
     const pivot = new THREE.Group();
@@ -313,34 +368,32 @@ function attachElement(el, host, hostOrigin, ctx) {
     );
 
     // Геометрія відносно власного pivot
-    const center = cubeCenter(el);
-
-    mesh.position.set(
-        (center[0] - pivotOrigin[0]) * UNIT,
-        (center[1] - pivotOrigin[1]) * UNIT,
-        (center[2] - pivotOrigin[2]) * UNIT
-    );
+    if (el.type === 'mesh') {
+        mesh.position.set(0, 0, 0);
+    } else {
+        const center = cubeCenter(el);
+        mesh.position.set(
+            (center[0] - pivotOrigin[0]) * UNIT,
+            (center[1] - pivotOrigin[1]) * UNIT,
+            (center[2] - pivotOrigin[2]) * UNIT
+        );
+    }
 
     pivot.add(mesh);
 
-    // ВАЖЛИВО:
-    // додаємо pivot саме до відповідної кістки
+    // The pivot is the animation target for this cube: it keeps its own bind
+    // pose and is registered by uuid/name, so a cube inside ANY group can be
+    // animated independently of the group that carries it.
+    captureBasePose(pivot);
     host.add(pivot);
 
-  ctx.elementMeshes[el.uuid] = mesh;
-  console.log(
-    'ATTACH:',
-    el.name,
-    '→',
-    host.name,
-    'hostOrigin:',
-    hostOrigin
-);
+    ctx.elementMeshes[el.uuid] = mesh;
+    registerBone(ctx, pivot, el.uuid, el.name);
 }
 // A bare element sitting directly in the outliner (no parent group). It acts
 // as its own little bone so it can still be animated and hit-tested.
 function addElementAsBone(el, parent, parentOrigin, ctx) {
-  const origin = el.origin || cubeCenter(el);
+  const origin = elementOrigin(el);
   const pivot = new THREE.Group();
   pivot.name = el.name || 'element';
   // RAW bind-pose delta from the parent pivot — no rotation compensation.
@@ -356,9 +409,35 @@ function addElementAsBone(el, parent, parentOrigin, ctx) {
   pivot.add(mesh);
   parent.add(pivot);
 
-  ctx.bonesByKey[el.uuid] = pivot;
-  if (el.name) ctx.bonesByKey[el.name] = pivot;
+  registerBone(ctx, pivot, el.uuid, el.name);
   ctx.elementMeshes[el.uuid] = mesh;
+}
+
+// null_object / locator: no geometry, but they are real outliner nodes that
+// animations may target (props, attachment points, helper pivots).
+const EMPTY_TYPES = new Set(['null_object', 'locator']);
+const SKIP_TYPES = new Set(['camera']);
+
+function attachEmpty(el, parent, parentOrigin, ctx) {
+  const origin = el.position || el.origin || [0, 0, 0];
+  const node = new THREE.Group();
+  node.name = el.name || el.type;
+  node.position.set(
+    (origin[0] - parentOrigin[0]) * UNIT,
+    (origin[1] - parentOrigin[1]) * UNIT,
+    (origin[2] - parentOrigin[2]) * UNIT
+  );
+  node.quaternion.setFromEuler(eulerFromDegrees(el.rotation || [0, 0, 0]));
+  captureBasePose(node);
+  parent.add(node);
+  registerBone(ctx, node, el.uuid, el.name);
+}
+
+function attachNode(el, parent, parentOrigin, ctx) {
+  if (SKIP_TYPES.has(el.type)) return;
+  if (EMPTY_TYPES.has(el.type)) return attachEmpty(el, parent, parentOrigin, ctx);
+  if (parent.userData.isModelRoot) addElementAsBone(el, parent, parentOrigin, ctx);
+  else attachElement(el, parent, parentOrigin, ctx);
 }
 
 // Recursively builds the outliner tree into a THREE.Group hierarchy.
@@ -372,8 +451,7 @@ function buildOutliner(nodes, ctx, groupsByUuid) {
     if (typeof node === 'string') {
       const el = ctx.elementsByUuid[node];
       if (!el) return;
-      if (parent.userData.isModelRoot) addElementAsBone(el, parent, parentOrigin, ctx);
-      else attachElement(el, parent, parentOrigin, ctx);
+      attachNode(el, parent, parentOrigin, ctx);
       return;
     }
 
@@ -404,8 +482,7 @@ function buildOutliner(nodes, ctx, groupsByUuid) {
     captureBasePose(group);
 
     parent.add(group);
-    ctx.bonesByKey[node.uuid] = group;
-    ctx.bonesByKey[name] = group;
+    registerBone(ctx, group, node.uuid, name);
 
     (node.children || []).forEach((child) => addNode(child, group, origin));
   }
@@ -422,7 +499,7 @@ export function parseBBModel(json, overrides, { wireframe = false } = {}) {
   const groupsByUuid = {};
   (json.groups || []).forEach((g) => (groupsByUuid[g.uuid] = g));
 
-  const overridesByKey = overrides || {};
+  const overridesByKey = withEmbeddedTextures(json, overrides);
   const textureKeyToTexture = {};
   Object.values(overridesByKey).forEach((dataUrl) => {
     if (!dataUrl) return;
@@ -433,6 +510,7 @@ export function parseBBModel(json, overrides, { wireframe = false } = {}) {
   // THREE.Texture instance (dataUrl doubles as the cache key).
 
   const bonesByKey = {};
+  const bonesByNorm = {};
   const elementMeshes = {};
   const ctx = {
     resolution,
@@ -441,6 +519,7 @@ export function parseBBModel(json, overrides, { wireframe = false } = {}) {
     textureKeyToTexture,
     wireframe,
     bonesByKey,
+    bonesByNorm,
     elementMeshes,
     elementsByUuid,
   };
@@ -456,17 +535,20 @@ export function parseBBModel(json, overrides, { wireframe = false } = {}) {
   };
   (json.outliner || []).forEach(mark);
   (json.elements || []).forEach((el) => {
-    if (!referenced.has(el.uuid)) addElementAsBone(el, root, [0, 0, 0], ctx);
+    if (!referenced.has(el.uuid)) attachNode(el, root, [0, 0, 0], ctx);
   });
 
-  const animations = (json.animations || []).map((anim) => ({
-    name: anim.name,
-    loop: anim.loop === true ? 'loop' : anim.loop || 'loop',
-    length: anim.length || 1,
-    animators: Object.entries(anim.animators || {}).map(([key, a]) => ({
-      key,
-      name: a.name,
-      keyframes: (a.keyframes || []).map((kf) => ({
+  // Animators are bound to their target node ONCE, here, so the per-frame
+  // path does no lookups. Resolution order: uuid → exact name → normalised
+  // name → torso/body alias. Animators that hit nothing are reported (once)
+  // and dropped instead of failing silently every frame.
+  const registry = { bonesByKey, bonesByNorm };
+  const unmatchedAnimators = [];
+  const animations = (json.animations || []).map((anim) => {
+    const animators = [];
+    Object.entries(anim.animators || {}).forEach(([key, a]) => {
+      if (a.type === 'effect') return; // sound / particle / timeline — nothing to pose
+      const keyframes = (a.keyframes || []).map((kf) => ({
         channel: kf.channel,
         time: kf.time || 0,
         interpolation: kf.interpolation || 'linear',
@@ -474,27 +556,42 @@ export function parseBBModel(json, overrides, { wireframe = false } = {}) {
           (kf.data_points && kf.data_points[0]) ||
           (Array.isArray(kf.values) && kf.values[0]) || // legacy files
           { x: 0, y: 0, z: 0 },
-      })),
-    })),
-  }));
+      }));
+      const channels = { rotation: [], position: [], scale: [] };
+      keyframes.forEach((kf) => channels[kf.channel]?.push(kf));
+      Object.values(channels).forEach((list) => list.sort((p, q) => p.time - q.time));
 
-  // Debug: log group information
-  const groupNames = ['group', 'group2', 'group3'];
-  groupNames.forEach(name => {
-    const bone = bonesByKey[name];
-    if (bone) {
-      console.log(`✓ Found bone '${name}':`, {
-        position: bone.position,
-        scale: bone.scale,
-        hasBasePosition: !!bone.userData?.basePosition,
-        baseScale: bone.userData?.baseScale,
+      const bone = resolveAnimTarget(registry, key, a.name);
+      if (!bone || !bone.userData.basePosition) {
+        unmatchedAnimators.push(`${anim.name} → "${a.name || key}"`);
+        return;
+      }
+      animators.push({
+        key,
+        name: a.name,
+        type: a.type,
+        keyframes,
+        channels,
+        bone,
+        isArm: ORIGINAL_ARM_NAMES.has(normKey(a.name)) || ORIGINAL_ARM_NAMES.has(normKey(bone.name)),
       });
-    } else {
-      console.warn(`✗ Bone '${name}' NOT found in bonesByKey`);
-    }
+    });
+    return {
+      name: anim.name,
+      loop: anim.loop === true ? 'loop' : anim.loop || 'loop',
+      length: anim.length || 1,
+      animators,
+    };
   });
 
-  return { root, bonesByKey, elementMeshes, animations, textures: json.textures || [] };
+  if (unmatchedAnimators.length) {
+    console.warn(
+      '[bbmodel] Animators with no matching node (check names — see naming rules):\n  ' +
+        unmatchedAnimators.join('\n  ')
+    );
+  }
+
+  return { root, bonesByKey, bonesByNorm, elementMeshes, animations, unmatchedAnimators, textures: json.textures || [] };
 }
 
 // ── Animation sampling & application ────────────────────────────────────
@@ -511,9 +608,9 @@ function scaleNum(v) {
   return Number.isFinite(n) ? n : 1;
 }
 
-function sampleChannel(keyframes, channel, t) {
-  const kfs = keyframes.filter((k) => k.channel === channel).sort((a, b) => a.time - b.time);
-  if (kfs.length === 0) return null;
+// `kfs` is one channel's keyframes, already sorted by time (done at parse).
+function sampleChannel(kfs, t) {
+  if (!kfs || kfs.length === 0) return null;
   if (t <= kfs[0].time) return kfs[0].value;
   if (t >= kfs[kfs.length - 1].time) return kfs[kfs.length - 1].value;
   for (let i = 0; i < kfs.length - 1; i++) {
@@ -531,9 +628,11 @@ function sampleChannel(keyframes, channel, t) {
   return kfs[kfs.length - 1].value;
 }
 
-function isArmAnimator(animator, bone) {
-  return /\b(left|right)\s+(arm|hand)\b/i.test(`${animator.name || ''} ${bone.name || ''}`);
-}
+// Only the ORIGINAL arm bones use Blockbench's fixed-axis (ZYX) "replace the
+// rest rotation" behaviour. Matching is on the WHOLE normalised name, so
+// custom objects such as "Left Arm Sleeve" or "left arm 2" are treated as
+// ordinary offset bones.
+const ORIGINAL_ARM_NAMES = new Set(['leftarm', 'rightarm', 'lefthand', 'righthand']);
 
 // Scratch objects — reused every frame to avoid GC churn.
 const _animEuler = new THREE.Euler(0, 0, 0, 'XYZ');
@@ -542,47 +641,28 @@ const _animQuat = new THREE.Quaternion();
 
 export function applyAnimationFrame(model, animation, t) {
   if (!model || !animation) return;
-  
-  // Debug: log animation application for groups
-  const debugGroups = ['group', 'group2', 'group3'];
-  let groupsAnimatedCount = 0;
-  
+
   animation.animators.forEach((animator) => {
-    const bone = model.bonesByKey[animator.key] || model.bonesByKey[animator.name];
-    if (!bone || !bone.userData || !bone.userData.basePosition) return;
-    
-    // Count group animations
-    if (debugGroups.includes(animator.name)) {
-      groupsAnimatedCount++;
-      const scl = sampleChannel(animator.keyframes, 'scale', t);
-      if (scl) {
-        console.debug(`Animation '${animation.name}' @ t=${t.toFixed(2)}: ${animator.name} scale=`, scl);
-      }
-    }
-    
+    // Bound at parse time to ANY outliner node: original bones, custom
+    // groups, individual cubes/meshes, null objects, locators.
+    const bone = animator.bone;
+    if (!bone) return;
     const base = bone.userData;
 
-    // ROTATION — arms use Blockbench's fixed-axis animation order and replace
-    // their rest rotation. Other bones retain the existing offset behavior.
-    const armAnimator = isArmAnimator(animator, bone);
-    // ROTATION — an offset ON TOP of the bind rotation, composed in the
-    // bone's LOCAL frame: q = q_base ⊗ q_anim. In three.js, `multiply`
-    // appends the animation quaternion on the inner/local side, so the
-    // animation rotates the bone around its own rest-oriented axes — which
-    // is how Blockbench layers local rotation onto a rig. The reverse order
-    // (q_anim ⊗ q_base) would rotate around the PARENT's axes and misalign
-    // every swing on a bone that has a non-zero rest rotation.
-    const rot = sampleChannel(animator.keyframes, 'rotation', t);
+    // ROTATION — offset on top of the bind rotation in the node's LOCAL
+    // frame (q = q_base ⊗ q_anim). Original arms instead replace the rest
+    // rotation using ZYX order.
+    const rot = sampleChannel(animator.channels.rotation, t);
     if (rot) {
-      const euler = armAnimator ? _armAnimEuler : _animEuler;
+      const euler = animator.isArm ? _armAnimEuler : _animEuler;
       euler.set(DEG(toNum(rot.x)), DEG(toNum(rot.y)), DEG(toNum(rot.z)), euler.order);
       _animQuat.setFromEuler(euler);
-      if (armAnimator) bone.quaternion.copy(_animQuat);
+      if (animator.isArm) bone.quaternion.copy(_animQuat);
       else bone.quaternion.copy(base.baseQuaternion).multiply(_animQuat);
     }
 
-    // POSITION — an offset in model units on top of the bind position.
-    const pos = sampleChannel(animator.keyframes, 'position', t);
+    // POSITION — offset in model units on top of the bind position.
+    const pos = sampleChannel(animator.channels.position, t);
     if (pos) {
       bone.position.set(
         base.basePosition.x + toNum(pos.x) * UNIT,
@@ -592,7 +672,7 @@ export function applyAnimationFrame(model, animation, t) {
     }
 
     // SCALE — multiplicative on top of the bind scale.
-    const scl = sampleChannel(animator.keyframes, 'scale', t);
+    const scl = sampleChannel(animator.channels.scale, t);
     if (scl) {
       bone.scale.set(
         base.baseScale.x * scaleNum(scl.x),
@@ -600,10 +680,8 @@ export function applyAnimationFrame(model, animation, t) {
         base.baseScale.z * scaleNum(scl.z)
       );
     }
-    // Channels with no keyframes for this bone are deliberately left
-    // untouched, so those bones simply keep their base pose.
+    // Channels without keyframes are left untouched (bone keeps base pose).
   });
-
 }
 
 // Restore every bone to the exact bind pose parsed from the file. Called

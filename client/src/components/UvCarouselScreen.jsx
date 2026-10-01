@@ -184,7 +184,7 @@ export function UvCarouselScreen({ title = 'Borukva News', pages, hotspotFile, b
 
   return (
     <div className="carousel-screen">
-      <img className="bg-image" src={bgAsset} alt="" />
+      <div className="bg-image" style={{ backgroundImage: `url(${bgAsset})` }} aria-hidden="true" />
 
       <header className="carousel-appbar">
         <button className="back-link" onClick={() => navigate('/')} title="На головну">
