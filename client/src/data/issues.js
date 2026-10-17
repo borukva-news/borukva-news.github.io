@@ -192,6 +192,24 @@ export const HOME_CAROUSEL_ITEMS = [
     caption: "Нове інтерв'ю!",
   },
 ];
+//  псевдоформатування: 
+
+// bold{текст} — жирний текст
+// quote{текст} — текст цитата
+// italic{текст} — курсив
+// underline{текст} — підкреслений текст
+// under{текст} — підкреслений текст
+// underscore{текст} — підкреслений текст
+// link{URL}[текст] — посилання
+export const HOME_TICKER_ITEMS = [
+  'Результати виборів до Корита: переміг кандидат від партії "гр и б" з 34% голосів. Також до корита будуть допущені решта link{https://t.me/borukva_minecraft/1575}[underline{6 кандидатів що були в топі.}]',
+  'На сервер додано ботів-помічників, доступ отримують платні підписники.',
+  "Спавном тепер керує Temari_nya, слідкуйте за змінами порядку link{https://site.borukva.space/org/spavn}[underline{тут}].",
+  'Невідомий варить бурду якій вже 608 годин, а вона все ще не зіпсована.',
+  'Хотіли колись послухати реально нахапані треки? Радіо Хапонія - регулярно по вечорах, приєднуйтесь на сервері.',
+  'link{https://site.borukva.space/org/khaponiya/post/4729872e-eab1-478c-b916-f9371e1177ac}[underline{17.10 в 21:00 відбудеться голосування за нового лідера Хапонії}], хто ж нахапається на цю посаду?',
+  'link{https://site.borukva.space/org/halytska-khunta/post/dd1a2ce9-cf73-4d2b-89aa-9fbc813a9385}[underline{18.10 в 20:00 відбудеться друге скликання сейму Королівства Галіції.}]',
+];
 
 // ── Main entry menu ("/RULE34") — ported from MainScreen in main.dart ──
 export const MAIN_MENU_BUTTONS = [

@@ -28,7 +28,7 @@ function getSafeHref(href) {
 
 function renderInlineText(text, keyPrefix) {
   const parts = [];
-  const pattern = /link\{([^{}]*)\}\[([^\]]*)\]|bold\{([^{}]*)\}|quote\{([^{}]*)\}|(Поточна Країна:)/g;
+  const pattern = /link\{([^{}]*)\}\[([^\]]*)\]|bold\{([^{}]*)\}|italic\{([^{}]*)\}|underline\{([^{}]*)\}|under\{([^{}]*)\}|underscore\{([^{}]*)\}|quote\{([^{}]*)\}|(Поточна Країна:)/g;
   let lastIndex = 0;
   let match;
 
@@ -40,9 +40,14 @@ function renderInlineText(text, keyPrefix) {
     } else if (match[3] !== undefined) {
       parts.push(<strong key={`${keyPrefix}-bold-${match.index}`}>{renderInlineText(match[3], `${keyPrefix}-bold-${match.index}`)}</strong>);
     } else if (match[4] !== undefined) {
-      parts.push(<span key={`${keyPrefix}-quote-${match.index}`} className="feature-quote">{renderInlineText(match[4], `${keyPrefix}-quote-${match.index}`)}</span>);
+      parts.push(<em key={`${keyPrefix}-italic-${match.index}`} className="feature-italic">{renderInlineText(match[4], `${keyPrefix}-italic-${match.index}`)}</em>);
+    } else if (match[5] !== undefined || match[6] !== undefined || match[7] !== undefined) {
+      const underlineText = match[5] ?? match[6] ?? match[7];
+      parts.push(<span key={`${keyPrefix}-underline-${match.index}`} className="feature-underline">{renderInlineText(underlineText, `${keyPrefix}-underline-${match.index}`)}</span>);
+    } else if (match[8] !== undefined) {
+      parts.push(<span key={`${keyPrefix}-quote-${match.index}`} className="feature-quote">{renderInlineText(match[8], `${keyPrefix}-quote-${match.index}`)}</span>);
     } else {
-      parts.push(<span key={`${keyPrefix}-country-${match.index}`} className="feature-country-label">{match[5]}</span>);
+      parts.push(<span key={`${keyPrefix}-country-${match.index}`} className="feature-country-label">{match[9]}</span>);
     }
     lastIndex = pattern.lastIndex;
   }

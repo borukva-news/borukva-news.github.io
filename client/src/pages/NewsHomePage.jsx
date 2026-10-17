@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import { DROPDOWN_MENUS, HOME_CAROUSEL_ITEMS, SERVER_WIKI_URL, BG_MONOCHROME_ASSET } from '../data/issues';
+import {
+  DROPDOWN_MENUS,
+  HOME_CAROUSEL_ITEMS,
+  HOME_TICKER_ITEMS,
+  SERVER_WIKI_URL,
+  BG_MONOCHROME_ASSET,
+} from '../data/issues';
 
 function NewBadge() {
   return <span className="new-badge">НОВИЙ</span>;
@@ -177,6 +183,74 @@ function Carousel({ navigate }) {
   );
 }
 
+function NewsTicker() {
+  function renderTickerText(text, keyPrefix) {
+    const parts = [];
+    const pattern = /link\{([^{}]*)\}\[([^\]]*)\]|bold\{([^{}]*)\}|italic\{([^{}]*)\}|underline\{([^{}]*)\}|under\{([^{}]*)\}|underscore\{([^{}]*)\}|quote\{([^{}]*)\}/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = pattern.exec(text)) !== null) {
+      if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+      if (match[1] !== undefined) {
+        const href = /^(https?:\/\/|\/|#)/i.test(match[1].trim()) ? match[1].trim() : '#';
+        parts.push(
+          <a key={`${keyPrefix}-link-${match.index}`} href={href}>
+            {renderTickerText(match[2], `${keyPrefix}-link-${match.index}`)}
+          </a>,
+        );
+      } else if (match[3] !== undefined) {
+        parts.push(
+          <strong key={`${keyPrefix}-bold-${match.index}`}>
+            {renderTickerText(match[3], `${keyPrefix}-bold-${match.index}`)}
+          </strong>,
+        );
+      } else if (match[4] !== undefined) {
+        parts.push(
+          <em key={`${keyPrefix}-italic-${match.index}`} className="news-ticker-italic">
+            {renderTickerText(match[4], `${keyPrefix}-italic-${match.index}`)}
+          </em>,
+        );
+      } else if (match[5] !== undefined || match[6] !== undefined || match[7] !== undefined) {
+        const underlineText = match[5] ?? match[6] ?? match[7];
+        parts.push(
+          <span key={`${keyPrefix}-underline-${match.index}`} className="news-ticker-underline">
+            {renderTickerText(underlineText, `${keyPrefix}-underline-${match.index}`)}
+          </span>,
+        );
+      } else {
+        parts.push(
+          <span key={`${keyPrefix}-quote-${match.index}`} className="news-ticker-quote">
+            {renderTickerText(match[8], `${keyPrefix}-quote-${match.index}`)}
+          </span>,
+        );
+      }
+      lastIndex = pattern.lastIndex;
+    }
+
+    if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+    return parts;
+  }
+
+  const renderItems = () => HOME_TICKER_ITEMS.map((item, index) => (
+    <span className="news-ticker-item" key={`${item}-${index}`}>
+      {renderTickerText(item, `ticker-${index}`)}
+    </span>
+  ));
+
+  return (
+    <aside className="news-ticker" aria-label="Останні новини">
+      <span className="news-ticker-label">LIVE</span>
+      <div className="news-ticker-viewport">
+        <div className="news-ticker-track">
+          <div className="news-ticker-group">{renderItems()}</div>
+          <div className="news-ticker-group" aria-hidden="true">{renderItems()}</div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 export function NewsHomePage() {
   const navigate = useNavigate();
   const [publishNotice, setPublishNotice] = useState(false);
@@ -225,6 +299,7 @@ export function NewsHomePage() {
 
       <main className="news-home-main">
         <Carousel navigate={navigate} />
+        <NewsTicker />
 
         <div className="news-home-footer">
           <p>Останні новини та оновлення на Борукві</p>

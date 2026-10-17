@@ -38,7 +38,15 @@ const papasvinModel = JSON.parse(papasvinModelSource);
 const placeholderModel = JSON.parse(placeholderModelSource);
 const griagModel = JSON.parse(griagModelSource);
 const tetoModel = JSON.parse(tetoModelSource);
-// зробити перенаправлення з borukva-news.github.io / borukvanews на borukva - news.github.io
+//  псевдоформатування: 
+
+// bold{текст} — жирний текст
+// italic{текст} — курсив
+// underline{текст} — підкреслений текст
+// under{текст} — підкреслений текст
+// underscore{текст} — підкреслений текст
+// quote{текст} — текст цитата
+// link{URL}[текст] — посилання
 
 export function sortCharacters(characters, sortOrder) {
   return [...characters].sort((left, right) => {
@@ -786,6 +794,72 @@ export const CHARACTERS = [
     {
     id: 'dimavh',
     name: 'dimavh_',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+     {
+    id: 's9priteboo',
+    name: 'S9priteBoo',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+      {
+    id: 'polarnll',
+    name: 'POLARNll',
+    avatarPath: `assets/skin-avatar/none.png`,
+    rarity: '???',  
+    tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
+    animationFile: 'model placeholder.bbmodel',
+    model: placeholderModel,
+    skins: [  
+      {
+        id: 'original',
+        name: 'Оригінал',
+        overrides: buildEmbeddedOverrides(placeholderModel),
+      }
+    ],
+    characteristics: [
+      'Гравець 7 сезону Борукви.',
+      'quote{"???"}\n',
+      '???\n',
+      'Поточна Країна: ???',
+    ],
+  },
+       {
+    id: 'botnighttown',
+    name: 'BotnightTown',
     avatarPath: `assets/skin-avatar/none.png`,
     rarity: '???',  
     tags: [ 'відзначився:???', 'сезон:Сезон 7', ],
