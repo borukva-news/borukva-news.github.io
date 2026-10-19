@@ -26,6 +26,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
+const nodemailer = require('nodemailer');
 
 const app = express();
 
@@ -42,6 +43,7 @@ const CUSTOM_NEWS_TOKEN = process.env.CUSTOM_NEWS_GITHUB_TOKEN || process.env.GI
 const NEWS_DATA_TOKEN = process.env.NEWS_DATA_GITHUB_TOKEN || process.env.GITHUB_TOKEN || '';
 const MODERATION_SECRET = process.env.MODERATION_SECRET || '';
 const API_PUBLIC_URL = (process.env.API_PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
+const NEW_POST_NOTIFICATION_TO = process.env.NEW_POST_NOTIFICATION_TO || 'borukvanews@gmail.com';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://borukva-news.github.io';
 
@@ -182,6 +184,39 @@ function parseNews(value) {
 
 function imageUrl(folder, filename) {
   return `${API_PUBLIC_URL}/api/news/image/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}`;
+}
+
+async function sendNewPostNotification(news) {
+  const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+    console.warn('[propose-news] email notification skipped: SMTP is not fully configured');
+    return;
+  }
+
+  const port = Number(process.env.SMTP_PORT) || 587;
+  const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port,
+    secure: process.env.SMTP_SECURE
+      ? process.env.SMTP_SECURE === 'true'
+      : port === 465,
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
+  });
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || SMTP_USER,
+    to: NEW_POST_NOTIFICATION_TO,
+    subject: `Опубліковано новий пост: ${news.title}`,
+    text: [
+      'На сайті опубліковано новий пост.',
+      '',
+      `Номер у репозиторії: ${news.id}`,
+      `Назва: ${news.title}`,
+      `Автор: ${news.authorNick}`,
+      `Організація: ${news.organizationName}`,
+      `Час публікації: ${news.createdAt}`,
+    ].join('\n'),
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -333,6 +368,16 @@ app.post('/api/propose-news', async (req, res) => {
     await writeGithubFile('news-data', `hotspots/${id}_hotspots.json`, JSON.stringify({ newsId: id, hotspots }, null, 2), `Add hotspots for ${id}`);
     await writeGithubFile('custom-news', `published/${id}.json`, JSON.stringify(news, null, 2), `Publish ${id}`);
     console.log('[propose-news] published', { id });
+    try {
+      await sendNewPostNotification(news);
+      console.log('[propose-news] email notification sent', { id });
+    } catch (notificationError) {
+      console.error('[propose-news] email notification failed', {
+        id,
+        code: notificationError.code,
+        message: notificationError.message,
+      });
+    }
     res.status(201).json({ status: 'published', id });
   } catch (err) {
     console.error('[propose-news] failed', { code: err.code, status: err.status, message: err.message, body: err.body });
