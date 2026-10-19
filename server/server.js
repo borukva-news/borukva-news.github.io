@@ -7,8 +7,8 @@
 //   Backend  → Render
 //
 // Responsibilities:
-//   1. Provide REST proxy to GitHub Contents API.
-//   2. Read/write hotspot JSON files in the GitHub repository.
+//   1. Publish news and read/write data in GitHub repositories.
+//   2. Provide REST access to hotspots, news feeds, and reactions.
 //   3. Provide API health check.
 //
 // Environment variables:
@@ -26,7 +26,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
-const nodemailer = require('nodemailer');
 
 const app = express();
 
@@ -43,9 +42,6 @@ const CUSTOM_NEWS_TOKEN = process.env.CUSTOM_NEWS_GITHUB_TOKEN || process.env.GI
 const NEWS_DATA_TOKEN = process.env.NEWS_DATA_GITHUB_TOKEN || process.env.GITHUB_TOKEN || '';
 const MODERATION_SECRET = process.env.MODERATION_SECRET || '';
 const API_PUBLIC_URL = (process.env.API_PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
-const MODERATOR_EMAIL = process.env.MODERATOR_EMAIL || 'borukvanews@gmail.com';
-const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const RESEND_FROM = process.env.RESEND_FROM || process.env.SMTP_FROM || '';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://borukva-news.github.io';
 
@@ -188,113 +184,6 @@ function imageUrl(folder, filename) {
   return `${API_PUBLIC_URL}/api/news/image/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}`;
 }
 
-function mailer() {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const secure = process.env.SMTP_SECURE === 'true';
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST.trim(),
-    port,
-    secure,
-    requireTLS: !secure && port === 587,
-    auth: {
-      user: process.env.SMTP_USER.trim(),
-      pass: process.env.SMTP_PASS.replace(/\s/g, ''),
-    },
-  });
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function moderationEmailHtml({ id, author, organizationName, authorMessage, title, approveUrl, rejectUrl }) {
-  return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:30px;background:#f6f7f9">
-  <div style="background:#ffffff;border-radius:12px;padding:28px;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
-    <h2 style="margin-top:0;color:#202124;">📰 Нова новина на модерацію</h2>
-    <p style="color:#5f6368;font-size:15px;">Нова новина від автора <b>${escapeHtml(author)}</b> (${escapeHtml(organizationName)}) очікує на модерацію.</p>
-    <div style="background:#f1f3f4;border-radius:8px;padding:14px;margin:20px 0;">
-      <div style="font-size:12px;color:#80868b;">ID новини</div>
-      <div style="font-family:monospace;margin-top:4px;">${escapeHtml(id)}</div>
-      <div style="font-size:12px;color:#80868b;margin-top:12px;">Назва</div>
-      <div style="margin-top:4px;">${escapeHtml(title)}</div>
-      <div style="font-size:12px;color:#80868b;margin-top:12px;">Повідомлення</div>
-      <div style="margin-top:4px;white-space:pre-wrap;">${escapeHtml(authorMessage)}</div>
-    </div>
-    <p style="font-size:14px;color:#5f6368;">Оберіть дію:</p>
-    <div style="margin-top:20px;">
-      <a href="${escapeHtml(approveUrl)}" style="display:inline-block;background:#188038;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:7px;font-weight:bold;margin-right:8px;">✓ Схвалити</a>
-      <a href="${escapeHtml(rejectUrl)}" style="display:inline-block;background:#d93025;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:7px;font-weight:bold;">✕ Відхилити</a>
-    </div>
-    <hr style="border:none;border-top:1px solid #eee;margin:28px 0;">
-    <div style="font-size:12px;color:#9aa0a6;">Borukva News · Система модерації</div>
-  </div>
-</div>`;
-}
-
-async function sendMail(to, subject, text, html) {
-  if (RESEND_API_KEY) {
-    if (!RESEND_FROM) {
-      console.error('[mail] RESEND_FROM is not configured', { to, subject });
-      return { sent: false, error: 'from_not_configured' };
-    }
-    try {
-      const recipient = String(to || '').trim();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
-        console.error('[mail] invalid recipient address', { to, subject });
-        return { sent: false, error: 'invalid_recipient' };
-      }
-      console.log('[mail] sending through Resend HTTPS', { to: recipient, from: RESEND_FROM, subject });
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: RESEND_FROM, to: [recipient], subject, text, ...(html ? { html } : {}) }),
-      });
-      const body = await response.text();
-      if (!response.ok) {
-        console.error('[mail] Resend failed:', response.status, body.slice(0, 500));
-        return { sent: false, error: 'resend_failed', code: `HTTP_${response.status}` };
-      }
-      console.log('[mail] Resend message sent', { response: body.slice(0, 200) });
-      return { sent: true, error: null };
-    } catch (err) {
-      console.error('[mail] Resend request failed:', err.code || 'UNKNOWN', err.message);
-      return { sent: false, error: 'resend_request_failed', code: err.code || 'UNKNOWN' };
-    }
-  }
-
-  const transport = mailer();
-  if (!transport) {
-    console.error('[mail] SMTP is not configured', {
-      host: Boolean(process.env.SMTP_HOST),
-      user: Boolean(process.env.SMTP_USER),
-      pass: Boolean(process.env.SMTP_PASS),
-    });
-    return { sent: false, error: 'not_configured' };
-  }
-  console.log('[mail] connecting', { host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: process.env.SMTP_SECURE === 'true', to });
-  try {
-    await transport.verify();
-  } catch (err) {
-    console.error('[mail] verify failed:', err.code || 'UNKNOWN', err.message);
-    return { sent: false, error: 'verify_failed', code: err.code || 'UNKNOWN' };
-  }
-  console.log('[mail] SMTP connection verified');
-  try {
-    await transport.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, subject, text, ...(html ? { html } : {}) });
-  } catch (err) {
-    console.error('[mail] send failed:', err.code || 'UNKNOWN', err.message);
-    return { sent: false, error: 'send_failed', code: err.code || 'UNKNOWN' };
-  }
-  console.log('[mail] message sent');
-  return { sent: true, error: null };
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Health check
 // ─────────────────────────────────────────────────────────────────────────────
@@ -393,25 +282,37 @@ app.put('/api/hotspots/:file', async (req, res) => {
 });
 
 app.post('/api/propose-news', async (req, res) => {
-  const { title, authorNick, organizationName, authorMessage, secretNumber = '', images, hotspots = [] } = req.body || {};
+  const { title, authorNick, organizationName, authorMessage, secretNumber = '', images = [], hotspots = [] } = req.body || {};
+  const optionalImages = images ?? [];
   console.log('[propose-news] request received', {
     title,
     authorNick,
-    imageCount: Array.isArray(images) ? images.length : 0,
+    imageCount: Array.isArray(optionalImages) ? optionalImages.length : 0,
     hotspotCount: Array.isArray(hotspots) ? hotspots.length : 0,
   });
-  if (!title?.trim() || !authorNick?.trim() || !organizationName?.trim() || !authorMessage?.trim() || typeof secretNumber !== 'string' || !Array.isArray(images) || images.length === 0) {
+  const requiredFields = [title, authorNick, organizationName, authorMessage];
+  const hasInvalidImage = !Array.isArray(optionalImages) || optionalImages.some((image) => (
+    typeof image !== 'string' || !/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(image)
+  ));
+  if (
+    requiredFields.some((value) => typeof value !== 'string' || !value.trim())
+    || typeof secretNumber !== 'string'
+    || hasInvalidImage
+    || !Array.isArray(hotspots)
+  ) {
     console.error('[propose-news] validation failed', {
-      hasTitle: Boolean(title?.trim()),
-      hasAuthorNick: Boolean(authorNick?.trim()),
-      hasOrganizationName: Boolean(organizationName?.trim()),
-      hasAuthorMessage: Boolean(authorMessage?.trim()),
-      imageCount: Array.isArray(images) ? images.length : 0,
+      hasTitle: typeof title === 'string' && Boolean(title.trim()),
+      hasAuthorNick: typeof authorNick === 'string' && Boolean(authorNick.trim()),
+      hasOrganizationName: typeof organizationName === 'string' && Boolean(organizationName.trim()),
+      hasAuthorMessage: typeof authorMessage === 'string' && Boolean(authorMessage.trim()),
+      imageCount: Array.isArray(optionalImages) ? optionalImages.length : 0,
+      hasInvalidImage,
+      hasValidHotspots: Array.isArray(hotspots),
     });
-    return res.status(400).json({ error: 'title, authorNick, organizationName, authorMessage and at least one image are required' });
+    return res.status(400).json({ error: 'Valid title, authorNick, organizationName, authorMessage, optional PNG images and hotspots are required' });
   }
   try {
-    console.log('[propose-news] started', { title, authorNick, imageCount: images.length, hotspotCount: hotspots.length });
+    console.log('[propose-news] publishing', { title, authorNick, imageCount: optionalImages.length, hotspotCount: hotspots.length });
     let ids = { lastId: Math.floor(Date.now() / 1000) - 1 };
     let idsSha;
     try {
@@ -423,51 +324,20 @@ app.post('/api/propose-news', async (req, res) => {
       if (err.status !== 404 && !(err instanceof SyntaxError)) throw err;
     }
     const id = `news_${Math.max(Number(ids.lastId) || 0, Date.now()) + 1}`;
-    console.log('[propose-news] reserving id', { id });
+    console.log('[propose-news] reserving ID', { id });
     await writeGithubFile('custom-news', 'ids/news_ids.json', JSON.stringify({ lastId: Number(id.slice(5)) }, null, 2), `Reserve ${id}`, idsSha);
-    const imageNames = images.map((_, index) => `${id}_p${index + 1}.png`);
-    const news = { id, title: title.trim(), authorNick: authorNick.trim(), organizationName: organizationName.trim(), authorMessage: authorMessage.trim(), ...(secretNumber ? { secretNumber: secretNumber.trim() } : {}), status: 'draft', createdAt: new Date().toISOString(), images: imageNames, likes: 0, dislikes: 0, comments: [], commentsCount: 0, reactionVoters: {} };
-    console.log('[propose-news] saving draft', { id });
-    await writeGithubFile('custom-news', `drafts/${id}.json`, JSON.stringify(news, null, 2), `Create draft ${id}`);
-    console.log('[propose-news] saving images', { id, count: images.length });
-    await Promise.all(images.map((data, index) => writeGithubFile('custom-news', `drafts/images/${imageNames[index]}`, Buffer.from(String(data).replace(/^data:image\/png;base64,/, ''), 'base64'), `Add ${imageNames[index]}`)));
+    const imageNames = optionalImages.map((_, index) => `${id}_p${index + 1}.png`);
+    const news = { id, title: title.trim(), authorNick: authorNick.trim(), organizationName: organizationName.trim(), authorMessage: authorMessage.trim(), status: 'published', createdAt: new Date().toISOString(), images: imageNames, likes: 0, dislikes: 0, comments: [], commentsCount: 0, reactionVoters: {} };
+    console.log('[propose-news] saving published images', { id, count: optionalImages.length });
+    await Promise.all(optionalImages.map((data, index) => writeGithubFile('custom-news', `published/images/${imageNames[index]}`, Buffer.from(data.replace(/^data:image\/png;base64,/, ''), 'base64'), `Publish ${imageNames[index]}`)));
     await writeGithubFile('news-data', `hotspots/${id}_hotspots.json`, JSON.stringify({ newsId: id, hotspots }, null, 2), `Add hotspots for ${id}`);
-    console.log('[propose-news] sending moderation email', { id, to: MODERATOR_EMAIL });
-    const approve = `${API_PUBLIC_URL}/api/news/moderate?id=${id}&action=approve&token=${encodeURIComponent(MODERATION_SECRET)}`;
-    const reject = `${API_PUBLIC_URL}/api/news/moderate?id=${id}&action=reject&token=${encodeURIComponent(MODERATION_SECRET)}`;
-    const moderationText = `ID: ${id}\nАвтор: ${authorNick}\nОрганізація: ${organizationName}\nПовідомлення: ${authorMessage}\nНазва: ${title}\n\nApprove: ${approve}\nReject: ${reject}`;
-    const moderationHtml = moderationEmailHtml({ id, author: authorNick, organizationName, authorMessage, title, approveUrl: approve, rejectUrl: reject });
-    const mailResult = await sendMail(MODERATOR_EMAIL, `Нова новина на модерацію: ${title}`, moderationText, moderationHtml);
-    console.log('[propose-news] completed', { id, mailSent: mailResult.sent, mailError: mailResult.error, mailCode: mailResult.code });
-    res.status(201).json({ status: 'draft_created', id, mailSent: mailResult.sent, mailError: mailResult.error, mailCode: mailResult.code || null });
+    await writeGithubFile('custom-news', `published/${id}.json`, JSON.stringify(news, null, 2), `Publish ${id}`);
+    console.log('[propose-news] published', { id });
+    res.status(201).json({ status: 'published', id });
   } catch (err) {
     console.error('[propose-news] failed', { code: err.code, status: err.status, message: err.message, body: err.body });
-    res.status(err.status || 502).json({ error: 'Failed to create news draft' });
+    res.status(err.status || 502).json({ error: 'Failed to publish news' });
   }
-});
-
-app.get('/api/news/moderate', async (req, res) => {
-  const { id, action, token } = req.query;
-  if (!validNewsId(id) || !['approve', 'reject'].includes(action) || !MODERATION_SECRET || token !== MODERATION_SECRET) return res.status(403).send('Invalid moderation link');
-  try {
-    const draft = parseNews(JSON.parse((await readGithubFile('custom-news', `drafts/${id}.json`)).decoded));
-    if (action === 'approve') {
-      await Promise.all(draft.images.map(async (name) => {
-        const content = await readGithubBinary('custom-news', `drafts/images/${name}`);
-        if (!content.length) throw new Error(`Cannot publish empty image: ${name}`);
-        return writeGithubFile('custom-news', `published/images/${name}`, content, `Publish ${name}`);
-      }));
-      const publishedDraft = { ...draft };
-      delete publishedDraft.secretNumber;
-      delete publishedDraft.authorEmail;
-      const published = { ...publishedDraft, status: 'published' };
-      await writeGithubFile('custom-news', `published/${id}.json`, JSON.stringify(published, null, 2), `Publish ${id}`);
-    }
-    await removeGithubFile('custom-news', `drafts/${id}.json`, `${action} ${id}`);
-    await Promise.all(draft.images.map((name) => removeGithubFile('custom-news', `drafts/images/${name}`, `${action} ${name}`).catch((err) => { if (err.status !== 404) throw err; })));
-    if (action === 'reject') await removeGithubFile('news-data', `hotspots/${id}_hotspots.json`, `Reject hotspots for ${id}`).catch((err) => { if (err.status !== 404) throw err; });
-    res.type('html').send(`<h1>${action === 'approve' ? 'Новину опубліковано' : 'Новину відхилено'}</h1><p>${draft.title}</p>`);
-  } catch (err) { console.error('[moderate]', err); res.status(err.status || 502).send('Moderation failed'); }
 });
 
 app.delete('/api/news/:id', async (req, res) => {
