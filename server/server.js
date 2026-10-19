@@ -42,7 +42,7 @@ const CUSTOM_NEWS_TOKEN = process.env.CUSTOM_NEWS_GITHUB_TOKEN || process.env.GI
 const NEWS_DATA_TOKEN = process.env.NEWS_DATA_GITHUB_TOKEN || process.env.GITHUB_TOKEN || '';
 const MODERATION_SECRET = process.env.MODERATION_SECRET || '';
 const API_PUBLIC_URL = (process.env.API_PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
-const NEW_POST_NOTIFICATION_TO = process.env.NEW_POST_NOTIFICATION_TO || 'borukvanews@gmail.com';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '798195903';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://borukva-news.github.io';
 
@@ -186,33 +186,24 @@ function imageUrl(folder, filename) {
 }
 
 async function sendNewPostNotification(news) {
-  const { RESEND_API_KEY, RESEND_FROM } = process.env;
-  const missingSettings = [
-    !RESEND_API_KEY && 'RESEND_API_KEY',
-    !RESEND_FROM && 'RESEND_FROM',
-  ].filter(Boolean);
-  if (missingSettings.length) {
-    console.error('[email] notification skipped: missing Resend settings', { missingSettings, newsId: news.id });
+  const { TELEGRAM_BOT_TOKEN } = process.env;
+  if (!TELEGRAM_BOT_TOKEN) {
+    console.error('[telegram] notification skipped: missing bot token', { missingSettings: ['TELEGRAM_BOT_TOKEN'], newsId: news.id });
     return;
   }
 
-  const stage = 'Resend API request';
+  const stage = 'Telegram Bot API request';
   try {
-    console.info('[email] sending notification with Resend', {
+    console.info('[telegram] sending new-post notification', {
       newsId: news.id,
-      recipient: NEW_POST_NOTIFICATION_TO,
+      chatId: TELEGRAM_CHAT_ID,
     });
-    const response = await fetch('https://api.resend.com/emails', {
+    const response = await fetch(`https://api.telegram.org/bot${encodeURIComponent(TELEGRAM_BOT_TOKEN)}/sendMessage`, {
       method: 'POST',
       timeout: 15000,
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: RESEND_FROM,
-        to: [NEW_POST_NOTIFICATION_TO],
-        subject: `Опубліковано новий пост: ${news.title}`,
+        chat_id: TELEGRAM_CHAT_ID,
         text: [
           'На сайті опубліковано новий пост.',
           '',
@@ -222,6 +213,7 @@ async function sendNewPostNotification(news) {
           `Організація: ${news.organizationName}`,
           `Час публікації: ${news.createdAt}`,
         ].join('\n'),
+        disable_web_page_preview: true,
       }),
     });
 
@@ -230,30 +222,26 @@ async function sendNewPostNotification(news) {
     try {
       result = responseText ? JSON.parse(responseText) : {};
     } catch {
-      result = { message: responseText };
+      result = { description: responseText };
     }
 
-    if (!response.ok) {
-      const error = new Error(result.message || `Resend returned HTTP ${response.status}`);
-      error.code = result.name || 'RESEND_API_ERROR';
-      error.responseCode = response.status;
-      error.response = result;
-      throw error;
-    }
-    if (typeof result.id !== 'string' || !result.id) {
-      const error = new Error('Resend response did not include an email ID');
-      error.code = 'RESEND_INVALID_RESPONSE';
+    if (!response.ok || result.ok !== true) {
+      const error = new Error(result.description || `Telegram returned HTTP ${response.status}`);
+      error.code = result.error_code ? `TELEGRAM_${result.error_code}` : 'TELEGRAM_API_ERROR';
       error.responseCode = response.status;
       error.response = result;
       throw error;
     }
 
-    console.info('[email] Resend accepted notification', {
+    console.info('[telegram] notification delivered', {
       newsId: news.id,
-      emailId: result.id,
+      messageId: result.result?.message_id,
       responseCode: response.status,
     });
   } catch (error) {
+    error.message = error.message
+      .replace(TELEGRAM_BOT_TOKEN, '[redacted]')
+      .replace(encodeURIComponent(TELEGRAM_BOT_TOKEN), '[redacted]');
     error.stage = stage;
     throw error;
   }
@@ -410,11 +398,11 @@ app.post('/api/propose-news', async (req, res) => {
     console.log('[propose-news] published', { id });
     try {
       await sendNewPostNotification(news);
-      console.info('[email] notification request completed', { newsId: id });
+      console.info('[telegram] notification request completed', { newsId: id });
     } catch (notificationError) {
-      console.error('[email] notification failed', {
+      console.error('[telegram] notification failed', {
         newsId: id,
-        stage: notificationError.stage || 'connection/authentication check',
+        stage: notificationError.stage || 'Telegram Bot API request',
         code: notificationError.code,
         command: notificationError.command,
         responseCode: notificationError.responseCode,
