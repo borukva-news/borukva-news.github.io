@@ -188,35 +188,70 @@ function imageUrl(folder, filename) {
 
 async function sendNewPostNotification(news) {
   const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-    console.warn('[propose-news] email notification skipped: SMTP is not fully configured');
+  const missingSettings = [
+    !SMTP_HOST && 'SMTP_HOST',
+    !SMTP_USER && 'SMTP_USER',
+    !SMTP_PASS && 'SMTP_PASS',
+  ].filter(Boolean);
+  if (missingSettings.length) {
+    console.error('[email] notification skipped: missing SMTP settings', { missingSettings, newsId: news.id });
     return;
   }
 
   const port = Number(process.env.SMTP_PORT) || 587;
+  const secure = process.env.SMTP_SECURE
+    ? process.env.SMTP_SECURE === 'true'
+    : port === 465;
+  let stage = 'connection/authentication check';
   const transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port,
-    secure: process.env.SMTP_SECURE
-      ? process.env.SMTP_SECURE === 'true'
-      : port === 465,
+    secure,
     auth: { user: SMTP_USER, pass: SMTP_PASS },
   });
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || SMTP_USER,
-    to: NEW_POST_NOTIFICATION_TO,
-    subject: `Опубліковано новий пост: ${news.title}`,
-    text: [
-      'На сайті опубліковано новий пост.',
-      '',
-      `Номер у репозиторії: ${news.id}`,
-      `Назва: ${news.title}`,
-      `Автор: ${news.authorNick}`,
-      `Організація: ${news.organizationName}`,
-      `Час публікації: ${news.createdAt}`,
-    ].join('\n'),
-  });
+  try {
+    console.info('[email] checking SMTP connection', {
+      newsId: news.id,
+      host: SMTP_HOST,
+      port,
+      secure,
+      recipient: NEW_POST_NOTIFICATION_TO,
+    });
+    await transporter.verify();
+    console.info('[email] SMTP connection and authentication successful', { newsId: news.id });
+
+    stage = 'message delivery';
+    const result = await transporter.sendMail({
+      from: process.env.SMTP_FROM || SMTP_USER,
+      to: NEW_POST_NOTIFICATION_TO,
+      subject: `Опубліковано новий пост: ${news.title}`,
+      text: [
+        'На сайті опубліковано новий пост.',
+        '',
+        `Номер у репозиторії: ${news.id}`,
+        `Назва: ${news.title}`,
+        `Автор: ${news.authorNick}`,
+        `Організація: ${news.organizationName}`,
+        `Час публікації: ${news.createdAt}`,
+      ].join('\n'),
+    });
+    console.info('[email] SMTP delivery result', {
+      newsId: news.id,
+      messageId: result.messageId,
+      accepted: result.accepted,
+      rejected: result.rejected,
+      response: result.response,
+    });
+    if (result.rejected.length > 0 || result.accepted.length === 0) {
+      const error = new Error('SMTP server did not accept the notification recipient');
+      error.code = 'EMAIL_RECIPIENT_REJECTED';
+      throw error;
+    }
+  } catch (error) {
+    error.stage = stage;
+    throw error;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -370,11 +405,15 @@ app.post('/api/propose-news', async (req, res) => {
     console.log('[propose-news] published', { id });
     try {
       await sendNewPostNotification(news);
-      console.log('[propose-news] email notification sent', { id });
+      console.info('[email] notification accepted by SMTP server', { newsId: id });
     } catch (notificationError) {
-      console.error('[propose-news] email notification failed', {
-        id,
+      console.error('[email] notification failed', {
+        newsId: id,
+        stage: notificationError.stage || 'connection/authentication check',
         code: notificationError.code,
+        command: notificationError.command,
+        responseCode: notificationError.responseCode,
+        response: notificationError.response,
         message: notificationError.message,
       });
     }
