@@ -26,7 +26,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
-const nodemailer = require('nodemailer');
 
 const app = express();
 
@@ -187,67 +186,73 @@ function imageUrl(folder, filename) {
 }
 
 async function sendNewPostNotification(news) {
-  const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
+  const { RESEND_API_KEY, RESEND_FROM } = process.env;
   const missingSettings = [
-    !SMTP_HOST && 'SMTP_HOST',
-    !SMTP_USER && 'SMTP_USER',
-    !SMTP_PASS && 'SMTP_PASS',
+    !RESEND_API_KEY && 'RESEND_API_KEY',
+    !RESEND_FROM && 'RESEND_FROM',
   ].filter(Boolean);
   if (missingSettings.length) {
-    console.error('[email] notification skipped: missing SMTP settings', { missingSettings, newsId: news.id });
+    console.error('[email] notification skipped: missing Resend settings', { missingSettings, newsId: news.id });
     return;
   }
 
-  const port = Number(process.env.SMTP_PORT) || 587;
-  const secure = process.env.SMTP_SECURE
-    ? process.env.SMTP_SECURE === 'true'
-    : port === 465;
-  let stage = 'connection/authentication check';
-  const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port,
-    secure,
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
-  });
-
+  const stage = 'Resend API request';
   try {
-    console.info('[email] checking SMTP connection', {
+    console.info('[email] sending notification with Resend', {
       newsId: news.id,
-      host: SMTP_HOST,
-      port,
-      secure,
       recipient: NEW_POST_NOTIFICATION_TO,
     });
-    await transporter.verify();
-    console.info('[email] SMTP connection and authentication successful', { newsId: news.id });
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      timeout: 15000,
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: RESEND_FROM,
+        to: [NEW_POST_NOTIFICATION_TO],
+        subject: `Опубліковано новий пост: ${news.title}`,
+        text: [
+          'На сайті опубліковано новий пост.',
+          '',
+          `Номер у репозиторії: ${news.id}`,
+          `Назва: ${news.title}`,
+          `Автор: ${news.authorNick}`,
+          `Організація: ${news.organizationName}`,
+          `Час публікації: ${news.createdAt}`,
+        ].join('\n'),
+      }),
+    });
 
-    stage = 'message delivery';
-    const result = await transporter.sendMail({
-      from: process.env.SMTP_FROM || SMTP_USER,
-      to: NEW_POST_NOTIFICATION_TO,
-      subject: `Опубліковано новий пост: ${news.title}`,
-      text: [
-        'На сайті опубліковано новий пост.',
-        '',
-        `Номер у репозиторії: ${news.id}`,
-        `Назва: ${news.title}`,
-        `Автор: ${news.authorNick}`,
-        `Організація: ${news.organizationName}`,
-        `Час публікації: ${news.createdAt}`,
-      ].join('\n'),
-    });
-    console.info('[email] SMTP delivery result', {
-      newsId: news.id,
-      messageId: result.messageId,
-      accepted: result.accepted,
-      rejected: result.rejected,
-      response: result.response,
-    });
-    if (result.rejected.length > 0 || result.accepted.length === 0) {
-      const error = new Error('SMTP server did not accept the notification recipient');
-      error.code = 'EMAIL_RECIPIENT_REJECTED';
+    const responseText = await response.text();
+    let result;
+    try {
+      result = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      result = { message: responseText };
+    }
+
+    if (!response.ok) {
+      const error = new Error(result.message || `Resend returned HTTP ${response.status}`);
+      error.code = result.name || 'RESEND_API_ERROR';
+      error.responseCode = response.status;
+      error.response = result;
       throw error;
     }
+    if (typeof result.id !== 'string' || !result.id) {
+      const error = new Error('Resend response did not include an email ID');
+      error.code = 'RESEND_INVALID_RESPONSE';
+      error.responseCode = response.status;
+      error.response = result;
+      throw error;
+    }
+
+    console.info('[email] Resend accepted notification', {
+      newsId: news.id,
+      emailId: result.id,
+      responseCode: response.status,
+    });
   } catch (error) {
     error.stage = stage;
     throw error;
@@ -405,7 +410,7 @@ app.post('/api/propose-news', async (req, res) => {
     console.log('[propose-news] published', { id });
     try {
       await sendNewPostNotification(news);
-      console.info('[email] notification accepted by SMTP server', { newsId: id });
+      console.info('[email] notification request completed', { newsId: id });
     } catch (notificationError) {
       console.error('[email] notification failed', {
         newsId: id,
